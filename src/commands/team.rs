@@ -20,6 +20,9 @@ pub fn run(options: &[ResolvedOption]) -> CreateInteractionResponse {
             CreateEmbed::new()
                 .title(format!("Team {}", team_number.unwrap()))
                 .description("testing")
+                .field("Organization", "Team Org", true)    
+                .field("Grade", "Grade Level", true)    
+                .field("Active", "Active Status", true)
         );
 
     CreateInteractionResponse::Message(message)
