@@ -1,8 +1,9 @@
 use serenity::builder::CreateCommand;
-use serenity::model::application::ResolvedOption;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
+use serenity::client::Context;
+use serenity::model::application::CommandInteraction;
 
-pub fn run(_options: &[ResolvedOption]) -> CreateInteractionResponse {
+pub fn run(_ctx: &Context, _interaction: &CommandInteraction) -> CreateInteractionResponse {
     let message = CreateInteractionResponseMessage::new().content("Pong!");
 
     CreateInteractionResponse::Message(message)

@@ -5,11 +5,12 @@ use serenity::builder::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage
 };
-use serenity::all::CommandOptionType;
-use serenity::model::application::{ResolvedOption, ResolvedValue};
+use serenity::all::{CommandOptionType, CommandDataOptionValue};
+use serenity::client::Context;
+use serenity::model::application::CommandInteraction;
 
-pub fn run(options: &[ResolvedOption]) -> CreateInteractionResponse {
-    let team_number = if let ResolvedValue::String(number) = options[0].value {
+pub fn run(_ctx: &Context, interaction: &CommandInteraction) -> CreateInteractionResponse {
+    let team_number = if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
         Some(number)
     } else {
         None
