@@ -21,8 +21,11 @@ pub fn response(_ctx: &Context, interaction: &CommandInteraction) -> CreateInter
 
     let page_menu = CreateSelectMenu::new("team_page_select", CreateSelectMenuKind::String {
         options: vec![
-            CreateSelectMenuOption::new("Page 1", "opt_1"),
-            CreateSelectMenuOption::new("Page 2", "opt_2"),
+            CreateSelectMenuOption::new("Team Info", "team"), //🗿
+            CreateSelectMenuOption::new("Awards", "awards"), //🏆
+            CreateSelectMenuOption::new("Skills", "skills"), //📄
+            CreateSelectMenuOption::new("Trueskill", "trueskill"), //📊
+            CreateSelectMenuOption::new("Events", "events"), //🗓️
         ],
     });
     let season_menu = CreateSelectMenu::new("team_season_select", CreateSelectMenuKind::String {
