@@ -14,5 +14,5 @@ pub fn run(_options: &[ResolvedOption]) -> CreateInteractionResponse {
 }
 
 pub fn register() -> CreateCommand {
-    CreateCommand::new("ping").description("Ping the bot")
+    CreateCommand::new("team").description("Embed Test")
 }
