@@ -20,7 +20,7 @@ impl EventHandler for Bot {
         Command::set_global_commands(&ctx.http, vec![
             commands::ping::register(),
             commands::team::register()
-        ]);
+        ]).await.expect("Failed to register slash commands.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
