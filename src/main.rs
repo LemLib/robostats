@@ -1,4 +1,4 @@
-use std::env;
+use shuttle_secrets::SecretStore;
 
 use serenity::all::Command;
 use serenity::async_trait;
@@ -9,20 +9,18 @@ use serenity::prelude::*;
 
 mod commands;
 
-struct Handler;
+struct Bot;
 
 #[async_trait]
-impl EventHandler for Handler {
+impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
         // Register slash commands
-        if let Err(error) = Command::create_global_command(&ctx.http, commands::ping::register()).await {
-            println!("Could not register ping slash command: {error}");
-        }
-        if let Err(error) = Command::create_global_command(&ctx.http, commands::team::register()).await {
-            println!("Could not register team command: {error}");
-        }
+        Command::set_global_commands(&ctx.http, vec![
+            commands::ping::register(),
+            commands::team::register()
+        ]);
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -30,7 +28,6 @@ impl EventHandler for Handler {
             let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
                 "team" => Some(commands::team::response(&ctx, &command)),
-                // "awards" => Some(commands::awards::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
 
@@ -48,19 +45,15 @@ impl EventHandler for Handler {
     }
 }
 
-#[tokio::main]
-async fn main() {
+#[shuttle_runtime::main]
+async fn serenity(
+    #[shuttle_secrets::Secrets] secrets: SecretStore
+) -> shuttle_serenity::ShuttleSerenity {
     // Configure the client with your Discord bot token in the environment.
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let token = secrets.get("DISCORD_TOKEN").expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
 
-    // Build our client.
-    let mut client = Client::builder(token, GatewayIntents::empty()).event_handler(Handler).await.expect("Error creating client");
+    // Build client with token and default intents.
+    let mut client = Client::builder(token, GatewayIntents::empty()).event_handler(Bot).await.expect("Error creating client");
 
-    // Finally, start a single shard, and start listening to events.
-    //
-    // Shards will automatically attempt to reconnect, and will perform exponential backoff until
-    // it reconnects.
-    if let Err(error) = client.start().await {
-        println!("Client error: {error:?}");
-    }
+    Ok(client.into());
 }
