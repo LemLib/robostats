@@ -11,3 +11,4 @@ tokio = "1.26.0"
 shuttle-secrets = "0.34.0"
 shuttle-runtime = "0.34.0"
 shuttle-serenity = { version = "0.34.1", default-features = false, features = ["serenity-0-12-rustls_backend"] }
+lazy_static = "1.4.0"
