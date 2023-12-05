@@ -35,8 +35,8 @@ impl EventHandler for Handler {
             };
 
             if let Some(response) = response {
-                if let Err(why) = command.create_response(&ctx.http, response).await {
-                    println!("Cannot respond to slash command: {why}");
+                if let Err(error) = command.create_response(&ctx.http, response).await {
+                    println!("Cannot respond to slash command: {error}");
                 }
             }
         }
@@ -55,7 +55,7 @@ async fn main() {
     //
     // Shards will automatically attempt to reconnect, and will perform exponential backoff until
     // it reconnects.
-    if let Err(why) = client.start().await {
-        println!("Client error: {why:?}");
+    if let Err(error) = client.start().await {
+        println!("Client error: {error:?}");
     }
 }

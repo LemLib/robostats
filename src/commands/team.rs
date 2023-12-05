@@ -1,6 +1,12 @@
-use serenity::builder::{CreateCommand, CreateEmbed, CreateCommandOption};
+use serenity::builder::{
+    CreateCommand,
+    CreateEmbed,
+    CreateCommandOption,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage
+};
+use serenity::all::CommandOptionType;
 use serenity::model::application::{ResolvedOption, ResolvedValue};
-use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 
 pub fn run(options: &[ResolvedOption]) -> CreateInteractionResponse {
     let team_number = if let ResolvedValue::String(number) = options[0].value {
@@ -23,6 +29,6 @@ pub fn register() -> CreateCommand {
     CreateCommand::new("team")
         .description("Embed Test")
         .set_options(vec![
-            CreateCommandOption::new(serenity::all::CommandOptionType::String, "Team Number", "Team Number")
+            CreateCommandOption::new(CommandOptionType::String, "Team Number", "Team Number")
         ])
 }
