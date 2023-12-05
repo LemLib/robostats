@@ -16,24 +16,26 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
-        let command = Command::create_global_command(&ctx.http, commands::ping::register()).await;
-
-        println!("I created the following global slash command: {command:#?}");
+        Command::create_global_command(&ctx.http, commands::ping::register()).await.expect("Failed to register ping command.");
+        Command::create_global_command(&ctx.http, commands::teams::register()).await.expect("Failed to register teams command.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
             println!("Received command interaction: {command:#?}");
 
-            let content = match command.data.name.as_str() {
+            let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::run(&command.data.options())),
-                _ => Some("not implemented :(".to_string()),
+                "teams" => Some(commands::teams::run(&command.data.options())),
+                _ => {
+                    let message = CreateInteractionResponseMessage::new().content("not implemented :(");
+
+                    Some(CreateInteractionResponse::Message(message))
+                },
             };
 
-            if let Some(content) = content {
-                let data = CreateInteractionResponseMessage::new().content(content);
-                let builder = CreateInteractionResponse::Message(data);
-                if let Err(why) = command.create_response(&ctx.http, builder).await {
+            if let Some(response) = response {
+                if let Err(why) = command.create_response(&ctx.http, response).await {
                     println!("Cannot respond to slash command: {why}");
                 }
             }
