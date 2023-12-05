@@ -28,7 +28,7 @@ pub fn run(options: &[ResolvedOption]) -> CreateInteractionResponse {
 pub fn register() -> CreateCommand {
     CreateCommand::new("team")
         .description("Embed Test")
-        .set_options(vec![
-            CreateCommandOption::new(CommandOptionType::String, "Team Number", "Team Number")
-        ])
+        .add_option(
+            CreateCommandOption::new(CommandOptionType::String, "team", "Team Number").required(true)
+        )
 }
