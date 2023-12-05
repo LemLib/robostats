@@ -1,13 +1,13 @@
-mod commands;
-
 use std::env;
-use serenity::all::Command;
 
+use serenity::all::Command;
 use serenity::async_trait;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
+
+mod commands;
 
 struct Handler;
 
@@ -16,12 +16,9 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
-        let command =
-            Command::create_global_command(&ctx.http, commands::ping::register())
-                .await;
+        let command = Command::create_global_command(&ctx.http, commands::ping::register()).await;
 
         println!("I created the following global slash command: {command:#?}");
-
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -50,10 +47,7 @@ async fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
     // Build our client.
-    let mut client = Client::builder(token, GatewayIntents::empty())
-        .event_handler(Handler)
-        .await
-        .expect("Error creating client");
+    let mut client = Client::builder(token, GatewayIntents::empty()).event_handler(Handler).await.expect("Error creating client");
 
     // Finally, start a single shard, and start listening to events.
     //
