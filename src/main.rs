@@ -26,7 +26,7 @@ impl EventHandler for Handler {
 
             let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::run(&command.data.options())),
-                "teams" => Some(commands::teams::run(&command.data.options())),
+                "team" => Some(commands::teams::run(&command.data.options())),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
 
