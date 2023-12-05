@@ -9,8 +9,6 @@ This project is licensed under the MIT license. Check [LICENSE](https://github.c
 
 ## Features
 
-## Example Project
-
 ## Tutorials
 
 ## FAQ
