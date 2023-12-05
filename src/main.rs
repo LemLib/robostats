@@ -17,7 +17,7 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
 
         Command::create_global_command(&ctx.http, commands::ping::register()).await.expect("Failed to register ping command.");
-        Command::create_global_command(&ctx.http, commands::teams::register()).await.expect("Failed to register teams command.");
+        Command::create_global_command(&ctx.http, commands::team::register()).await.expect("Failed to register teams command.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -26,7 +26,7 @@ impl EventHandler for Handler {
 
             let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::run(&command.data.options())),
-                "team" => Some(commands::teams::run(&command.data.options())),
+                "team" => Some(commands::team::run(&command.data.options())),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
 

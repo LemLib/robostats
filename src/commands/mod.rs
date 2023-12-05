@@ -1,2 +1,2 @@
 pub mod ping;
-pub mod teams;
+pub mod team;
