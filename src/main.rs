@@ -53,7 +53,7 @@ async fn serenity(
     let token = secrets.get("DISCORD_TOKEN").expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
 
     // Build client with token and default intents.
-    let mut client = Client::builder(token, GatewayIntents::empty()).event_handler(Bot).await.expect("Error creating client");
+    let client = Client::builder(token, GatewayIntents::empty()).event_handler(Bot).await.expect("Error creating client");
 
-    Ok(client.into());
+    Ok(client.into())
 }
