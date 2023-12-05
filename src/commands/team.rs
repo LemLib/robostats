@@ -9,7 +9,7 @@ use serenity::all::{CommandOptionType, CommandDataOptionValue};
 use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 
-pub fn run(_ctx: &Context, interaction: &CommandInteraction) -> CreateInteractionResponse {
+pub fn response(_ctx: &Context, interaction: &CommandInteraction) -> CreateInteractionResponse {
     let team_number = if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
         Some(number)
     } else {

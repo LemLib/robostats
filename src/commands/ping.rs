@@ -3,7 +3,7 @@ use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMess
 use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 
-pub fn run(_ctx: &Context, _interaction: &CommandInteraction) -> CreateInteractionResponse {
+pub fn response(_ctx: &Context, _interaction: &CommandInteraction) -> CreateInteractionResponse {
     let message = CreateInteractionResponseMessage::new().content("Pong!");
 
     CreateInteractionResponse::Message(message)

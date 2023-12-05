@@ -28,9 +28,9 @@ impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
             let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
-                "ping" => Some(commands::ping::run(&ctx, &command)),
-                "team" => Some(commands::team::run(&ctx, &command)),
-                // "awards" => Some(commands::awards::run(&ctx, &command)),
+                "ping" => Some(commands::ping::response(&ctx, &command)),
+                "team" => Some(commands::team::response(&ctx, &command)),
+                // "awards" => Some(commands::awards::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
 
