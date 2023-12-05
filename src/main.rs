@@ -17,7 +17,7 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
 
         Command::create_global_command(&ctx.http, commands::ping::register()).await.expect("Failed to register ping command.");
-        Command::create_global_command(&ctx.http, commands::teams::register()).await.expect("Failed to register teams command.");
+        Command::create_global_command(&ctx.http, commands::team::register()).await.expect("Failed to register teams command.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -25,7 +25,7 @@ impl EventHandler for Handler {
 
             let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::run(&command.data.options())),
-                "team" => Some(commands::teams::run(&command.data.options())),
+                "team" => Some(commands::team::run(&command.data.options())),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
 
@@ -34,8 +34,8 @@ impl EventHandler for Handler {
             };
 
             if let Some(response) = response {
-                if let Err(why) = command.create_response(&ctx.http, response).await {
-                    println!("Cannot respond to slash command: {why}");
+                if let Err(error) = command.create_response(&ctx.http, response).await {
+                    println!("Cannot respond to slash command: {error}");
                 }
             }
         }
@@ -54,7 +54,7 @@ async fn main() {
     //
     // Shards will automatically attempt to reconnect, and will perform exponential backoff until
     // it reconnects.
-    if let Err(why) = client.start().await {
-        println!("Client error: {why:?}");
+    if let Err(error) = client.start().await {
+        println!("Client error: {error:?}");
     }
 }
