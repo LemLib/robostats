@@ -3,7 +3,10 @@ use serenity::builder::{
     CreateEmbed,
     CreateCommandOption,
     CreateInteractionResponse,
-    CreateInteractionResponseMessage
+    CreateInteractionResponseMessage,
+    CreateActionRow,
+    CreateSelectMenu,
+    CreateSelectMenuKind, CreateSelectMenuOption
 };
 use serenity::all::{CommandOptionType, CommandDataOptionValue};
 use serenity::client::Context;
@@ -16,7 +19,24 @@ pub fn response(_ctx: &Context, interaction: &CommandInteraction) -> CreateInter
         None
     };
 
+    let page_menu = CreateSelectMenu::new("team_page_select", CreateSelectMenuKind::String {
+        options: vec![
+            CreateSelectMenuOption::new("Page 1", "opt_1"),
+            CreateSelectMenuOption::new("Page 2", "opt_2"),
+        ],
+    });
+    let season_menu = CreateSelectMenu::new("team_season_select", CreateSelectMenuKind::String {
+        options: vec![
+            CreateSelectMenuOption::new("Season 1", "opt_1"),
+            CreateSelectMenuOption::new("Season 2", "opt_2"),
+        ],
+    });
+
     let message = CreateInteractionResponseMessage::new()
+        .components(vec![
+            CreateActionRow::SelectMenu(page_menu),
+            CreateActionRow::SelectMenu(season_menu),
+        ])
         .add_embed(
             CreateEmbed::new()
                 .title(format!("Team {}", team_number.unwrap()))
