@@ -84,7 +84,7 @@ pub async fn response(
                 )));
             }
 
-            let embed = CreateEmbed::new()
+            let mut embed = CreateEmbed::new()
                 .title(format!(
                     "{} ({} {})",
                     team.number, team.program.code, team.grade
@@ -115,21 +115,15 @@ pub async fn response(
                     _ => Default::default(),
                 });
 
-            let embed = if let Some(robot_name) = team.robot_name {
+            if let Some(robot_name) = team.robot_name {
                 if !robot_name.is_empty() {
-                    embed.field("Robot Name", robot_name, true)
-                } else {
-                    embed
+                    embed = embed.field("Robot Name", robot_name, true)
                 }
-            } else {
-                embed
-            };
+            }
 
-            let embed = if let Ok(data_analysis) = data_analysis {
-                embed.field("TrueSkill Ranking", data_analysis.trueskill_ranking.to_string(), true)
-            } else {
-                embed
-            };
+            if let Ok(data_analysis) = data_analysis {
+                embed = embed.field("TrueSkill Ranking", data_analysis.trueskill_ranking.to_string(), true)
+            }
 
             let message = CreateInteractionResponseMessage::new().components(message_components).embed(embed);
 
