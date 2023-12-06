@@ -25,8 +25,10 @@ pub async fn response(
         };
 
     let program: &i64 =
-        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
-            number
+        &if interaction.data.options.len() < 2 {
+            1
+        } else if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
+           *number
         } else {
             return CreateInteractionResponse::Message(
                 CreateInteractionResponseMessage::new().content("Invalid program value."),
