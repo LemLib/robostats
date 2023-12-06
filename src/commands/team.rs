@@ -66,6 +66,7 @@ pub async fn response(
 
             let embed = CreateEmbed::new()
                 .title(format!("Team {}", team.number))
+                .url(format!("https://www.robotevents.com/teams/{}/{}", team.program.code, team.number))
                 .description(team.team_name)
                 .field("Organization", team.organization, true)
                 .field(
