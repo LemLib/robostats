@@ -46,7 +46,7 @@ pub fn response(_ctx: &Context, interaction: &CommandInteraction) -> CreateInter
 
 pub fn register() -> CreateCommand {
     let mut option = CreateCommandOption::new(CommandOptionType::String, "name", "The article name").required(true);
-    for (a, (b, c)) in PRIVILEGES.iter() {
+    for (a, (_, c)) in PRIVILEGES.iter() {
         option = option.add_string_choice(*c, *a)
     }
     CreateCommand::new("wiki").description("Link an article from the Purdue Sigbots Wiki or VEX Knowledge Base").add_option(option)

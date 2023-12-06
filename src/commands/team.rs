@@ -83,7 +83,7 @@ pub async fn response(
                         .field(
                             "Location",
                             format!("{}, {}, {}", team.location.city, team.location.region, team.location.country),
-                            true
+                            true,
                         )
                         .color(
                             match team.program.code.as_ref() {
@@ -111,9 +111,9 @@ pub async fn response(
 
 pub fn register() -> CreateCommand {
     CreateCommand::new("team")
-        .description("Embed Test")
+        .description("Displays information about a team")
         .add_option(
             CreateCommandOption::new(CommandOptionType::String, "team", "Team Number")
-                .required(true),
+                .required(true)
         )
 }
