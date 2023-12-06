@@ -9,9 +9,6 @@ pub struct RobotEvents {
 
 pub const API_BASE: &str = "https://www.robotevents.com/api/v2";
 
-#[derive(Default, Debug, Clone, PartialEq)]
-pub struct RobotEventsError;
-
 impl RobotEvents {
     pub fn new(bearer_token: impl AsRef<str>) -> Self {
         Self {

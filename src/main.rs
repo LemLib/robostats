@@ -7,14 +7,14 @@ use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMess
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
-use crate::api::vrcdataanalysis::client::VrcDataAnalysis;
+use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 
 mod commands;
 mod api;
 
 struct Bot {
     robotevents: RobotEvents,
-    vrcdataanalysis: VrcDataAnalysis,
+    vrc_data_analysis: VRCDataAnalysis,
 }
 
 #[async_trait]
@@ -32,9 +32,9 @@ impl EventHandler for Bot {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
-            let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
+            let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents().await, &self.vrcdataanalysis().await)),
+                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis).await),
                 "wiki" => Some(commands::wiki::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
@@ -63,7 +63,8 @@ async fn serenity(
     // Build client with token and default intents.
     let client = Client::builder(discord_token, GatewayIntents::empty())
         .event_handler(Bot {
-            robotevents: RobotEvents::new(robotevents_token)
+            robotevents: RobotEvents::new(robotevents_token),
+            vrc_data_analysis: VRCDataAnalysis::new(),
         })
         .await
         .expect("Error creating client");

@@ -1,4 +1,4 @@
-use serenity::all::{CommandDataOptionValue, CommandOptionType, ReactionType, ActionRowComponent};
+use serenity::all::{CommandDataOptionValue, CommandOptionType, ReactionType};
 use serenity::builder::{
     CreateActionRow, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
     CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind,
@@ -9,13 +9,13 @@ use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
 use crate::api::robotevents::client::RobotEvents;
-use crate::api::vrcdataanalysis::client::VrcDataAnalysis;
+use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 
 pub async fn response(
     _ctx: &Context,
     interaction: &CommandInteraction,
     robotevents: &RobotEvents,
-    vrcdataanalysis: &VrcDataAnalysis,
+    vrc_data_analysis: &VRCDataAnalysis,
 ) -> CreateInteractionResponse {
     let team_number =
         if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
@@ -27,7 +27,9 @@ pub async fn response(
         };
 
     let program: &i64 =
-        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
+        if &interaction.data.options.len() < &2 {
+            &1i64
+        } else if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
             number
         } else {
             return CreateInteractionResponse::Message(
@@ -35,8 +37,12 @@ pub async fn response(
             );
         };
 
-    let data_analysis = vrcdataanalysis.team_data(team_number);
-
+    let trueskill = if let Ok(data_analysis) = vrc_data_analysis.team_info(team_number).await {
+        data_analysis.trueskill_ranking.to_string()
+    } else {
+        "No ranking".to_string()
+    };
+      
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
@@ -84,7 +90,7 @@ pub async fn response(
                 )));
             }
 
-            let embed = CreateEmbed::new()
+            let mut embed = CreateEmbed::new()
                 .title(format!(
                     "{} ({} {})",
                     team.number, team.program.code, team.grade
@@ -103,12 +109,12 @@ pub async fn response(
                     ),
                     true,
                 )
+                .field("TrueSkill Ranking", trueskill, true)
                 .field(
                     "Registered",
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
-                //.field("Trueskill ranking", data_analysis.get("trueskill_ranking"), true)
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),
@@ -116,15 +122,11 @@ pub async fn response(
                     _ => Default::default(),
                 });
 
-            let embed = if let Some(robot_name) = team.robot_name {
+            if let Some(robot_name) = team.robot_name {
                 if !robot_name.is_empty() {
-                    embed.field("Robot Name", robot_name, true)
-                } else {
-                    embed
+                    embed = embed.field("Robot Name", robot_name, true)
                 }
-            } else {
-                embed
-            };
+            }
 
             let message = CreateInteractionResponseMessage::new().components(message_components).embed(embed);
 
@@ -150,12 +152,12 @@ pub fn register() -> CreateCommand {
                 .required(true),
         )
         .add_option(
-            CreateCommandOption::new(CommandOptionType::Integer, "Program", "Program Name")
+            CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name")
                 .required(false)
                 //these integer values are the program ids
                 //VRC is 1, VEXU is 4, and VEXIQ is 41
-                .add_string_choice("VRC", 1)
-                .add_string_choice("VEXU", 4)
-                .add_string_choice("VEXIQ", 41)
+                .add_int_choice("VRC", 1)
+                .add_int_choice("VEXU", 4)
+                .add_int_choice("VEXIQ", 41)
         )
 }
