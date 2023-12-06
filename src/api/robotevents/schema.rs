@@ -70,6 +70,17 @@ pub struct Location {
     pub coordinates: Coordinates,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Season {
+    pub id: i32,
+    pub name: String,
+    pub program: IdInfo,
+    pub start: String,
+    pub end: String,
+    pub years_start: String,
+    pub years_end: String,
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Coordinates {
     pub lat: f32,
