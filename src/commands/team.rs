@@ -25,11 +25,11 @@ pub async fn response(
         };
 
     let program: i32 =
-        if let CommandDataOptionValue::i32(number) = &interaction.data.options[0].value {
+        if let CommandDataOptionValue::i32(number) = &interaction.data.options[1].value {
             number
         } else {
             return CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new().content("Invalid team number."),
+                CreateInteractionResponseMessage::new().content("Invalid program value."),
             );
         };
 
