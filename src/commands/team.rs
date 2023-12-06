@@ -27,7 +27,9 @@ pub async fn response(
         };
 
     let program: &i64 =
-        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
+        if &interaction.data.options.len() < &2 {
+            &1i64
+        } else if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
             number
         } else {
             return CreateInteractionResponse::Message(
