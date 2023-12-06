@@ -5,6 +5,7 @@ use serenity::builder::{
     CreateSelectMenuOption,
 };
 use serenity::client::Context;
+use serenity::model::Color;
 use serenity::model::application::CommandInteraction;
 
 use crate::api::robotevents::client::RobotEvents;
@@ -78,11 +79,19 @@ pub async fn response(
                             if team.registered { "Yes" } else { "No" },
                             true,
                         )
-                        .field("Robot", team.robot_name, true)
+                        .field("Robot Name", team.robot_name, true)
                         .field(
                             "Location",
                             format!("{}, {}, {}", team.location.city, team.location.region, team.location.country),
                             true
+                        )
+                        .color(
+                            match team.program.code.as_ref() {
+                                "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
+                                "VIQRC" => Color::from_rgb(0, 119, 200),
+                                "VAIRC" => Color::from_rgb(91, 91, 91),
+                                _ => Default::default()
+                            }
                         ),
                 );
 

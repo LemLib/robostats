@@ -53,7 +53,7 @@ pub struct Coordinates {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Program {
-    id: i32,
+    pub id: i32,
     pub name: String,
     pub code: String,
 }
