@@ -5,8 +5,8 @@ use serenity::builder::{
     CreateSelectMenuOption,
 };
 use serenity::client::Context;
-use serenity::model::Color;
 use serenity::model::application::CommandInteraction;
+use serenity::model::Color;
 
 use crate::api::robotevents::client::RobotEvents;
 
@@ -51,7 +51,7 @@ pub async fn response(
                     ],
                 },
             );
-            
+
             let season_menu = CreateSelectMenu::new(
                 "team_season_select",
                 CreateSelectMenuKind::String {
@@ -68,7 +68,11 @@ pub async fn response(
                 .title(format!("Team {}", team.number))
                 .description(team.team_name)
                 .field("Organization", team.organization, true)
-                .field("Program", format!("{} {}", team.program.code, team.grade), true)
+                .field(
+                    "Program",
+                    format!("{} {}", team.program.code, team.grade),
+                    true,
+                )
                 .field(
                     "Registered",
                     if team.registered { "Yes" } else { "No" },
@@ -76,20 +80,25 @@ pub async fn response(
                 )
                 .field(
                     "Location",
-                    format!("{}, {}, {}", team.location.city, team.location.region, team.location.country),
-                    true
+                    format!(
+                        "{}, {}, {}",
+                        team.location.city, team.location.region, team.location.country
+                    ),
+                    true,
                 )
-                .color(
-                    match team.program.code.as_ref() {
-                        "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                        "VIQRC" => Color::from_rgb(0, 119, 200),
-                        "VAIRC" => Color::from_rgb(91, 91, 91),
-                        _ => Default::default()
-                    }
-                );
-            
+                .color(match team.program.code.as_ref() {
+                    "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
+                    "VIQRC" => Color::from_rgb(0, 119, 200),
+                    "VAIRC" => Color::from_rgb(91, 91, 91),
+                    _ => Default::default(),
+                });
+
             let embed = if let Some(robot_name) = team.robot_name {
-                embed.field("Robot Name", robot_name, true)
+                if !robot_name.is_empty() {
+                    embed.field("Robot Name", robot_name, true)
+                } else {
+                    embed
+                }
             } else {
                 embed
             };
@@ -120,6 +129,6 @@ pub fn register() -> CreateCommand {
         .description("Displays information about a team")
         .add_option(
             CreateCommandOption::new(CommandOptionType::String, "team", "Team Number")
-                .required(true)
+                .required(true),
         )
 }
