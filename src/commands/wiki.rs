@@ -59,3 +59,4 @@ pub fn register() -> CreateCommand {
     }
     CreateCommand::new("wiki").description("Link an article from the Purdue Sigbots Wiki or VEX Knowledge Base").add_option(option)
 }
+

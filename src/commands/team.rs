@@ -15,6 +15,7 @@ pub async fn response(
     interaction: &CommandInteraction,
     robotevents: &RobotEvents,
 ) -> CreateInteractionResponse {
+
     let team_number =
         if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
             number
@@ -24,15 +25,26 @@ pub async fn response(
             );
         };
 
-    let program: &i64 =
-        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
+    let program_value =
+        if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
             number
         } else {
             return CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new().content("Invalid program value."),
+                CreateInteractionResponseMessage::new().content("Invalid team number."),
             );
         };
 
+    let mut program = 1;
+
+    if (program_value == "VRC"){
+        program = 1;
+    }
+    else if (program_value == "VEXU"){
+        program = 4;
+    }
+    else if (program_value == "VEXIQ"){
+        program = 41;
+    }
 
 
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
@@ -147,12 +159,12 @@ pub fn register() -> CreateCommand {
                 .required(true),
         )
         .add_option(
-            CreateCommandOption::new(CommandOptionType::Integer, "Program", "Program Name")
+            CreateCommandOption::new(CommandOptionType::String, "Program", "Program Name")
                 .required(false)
                 //these integer values are the program ids
                 //VRC is 1, VEXU is 4, and VEXIQ is 41
-                .add_string_choice("VRC", 1)
-                .add_string_choice("VEXU", 4)
-                .add_string_choice("VEXIQ", 41)
+                .add_string_choice("VRC", "VRC")
+                .add_string_choice("VEXU", "VEXU")
+                .add_string_choice("VEXIQ", "VEXIQ")
         )
 }
