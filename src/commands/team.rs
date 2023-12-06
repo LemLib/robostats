@@ -60,11 +60,13 @@ pub async fn response(
                     CreateSelectMenuKind::String {
                         options: seasons
                             .iter()
-                            .map(|season| {
+                            .enumerate()
+                            .map(|(i, season)| {
                                 CreateSelectMenuOption::new(
                                     &season.name,
                                     format!("option_season_{}", season.id),
                                 )
+                                .default_selection(i == 0)
                                 .description(format!("{}-{}", season.years_start, season.years_end))
                             })
                             .collect(),
