@@ -1,4 +1,5 @@
 use api::robotevents::client::RobotEvents;
+use api::vrc_data_analysis::client::VRCDataAnalysis;
 use shuttle_secrets::SecretStore;
 
 use serenity::all::Command;
@@ -13,6 +14,7 @@ mod api;
 
 struct Bot {
     robotevents: RobotEvents,
+    vrc_data_analysis: VRCDataAnalysis,
 }
 
 #[async_trait]
@@ -32,7 +34,7 @@ impl EventHandler for Bot {
         if let Interaction::Command(command) = interaction {
             let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents).await),
+                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis).await),
                 "wiki" => Some(commands::wiki::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
@@ -61,7 +63,8 @@ async fn serenity(
     // Build client with token and default intents.
     let client = Client::builder(discord_token, GatewayIntents::empty())
         .event_handler(Bot {
-            robotevents: RobotEvents::new(robotevents_token)
+            robotevents: RobotEvents::new(robotevents_token),
+            vrc_data_analysis: VRCDataAnalysis::new(),
         })
         .await
         .expect("Error creating client");
