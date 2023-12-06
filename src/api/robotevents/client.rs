@@ -33,8 +33,8 @@ impl RobotEvents {
             .unwrap())
     }
 
-    pub async fn find_teams(&self, team_number: &str) -> Result<Vec<Team>, reqwest::Error> {
-        let response = self.request(format!("/teams?number%5B%5D={team_number}")).await?;
+    pub async fn find_teams(&self, team_number: &str, program: i32) -> Result<Vec<Team>, reqwest::Error> {
+        let response = self.request(format!("/teams?number%5B%5D={team_number}&program%5B%5D={program}")).await?;
 
         Ok(response.json::<RobotEventsResponse<Team>>().await?.data)
     }

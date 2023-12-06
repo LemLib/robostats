@@ -24,7 +24,18 @@ pub async fn response(
             );
         };
 
-    if let Ok(teams) = robotevents.find_teams(team_number).await {
+    let program: i32 =
+        if let CommandDataOptionValue::i32(number) = &interaction.data.options[0].value {
+            number
+        } else {
+            return CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new().content("Invalid team number."),
+            );
+        };
+
+
+
+    if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
 
@@ -134,5 +145,14 @@ pub fn register() -> CreateCommand {
         .add_option(
             CreateCommandOption::new(CommandOptionType::String, "team", "Team Number")
                 .required(true),
+        )
+        .add_option(
+            CreateCommandOption::new(CommandOptionType::i32, "Program", "Program Name")
+                .required(false)
+                //these integer values are the program ids
+                //VRC is 1, VEXU is 4, and VEXIQ is 41
+                .add_string_choice("VRC", 1)
+                .add_string_choice("VEXU", 4)
+                .add_string_choice("VEXIQ", 41)
         )
 }
