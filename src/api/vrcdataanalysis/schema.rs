@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Debug};
+use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Data {
     ap_per_match: f64,
@@ -17,6 +17,6 @@ pub struct Data {
     total_ties: i64,
     total_wins: i64,
     trueskill: i64,
-    trueskill_ranking: i64,
+    pub(crate) trueskill_ranking: i64,
     wp_per_match: f64,
 }

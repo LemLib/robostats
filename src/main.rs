@@ -7,12 +7,14 @@ use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMess
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
+use crate::api::vrcdataanalysis::client::VrcDataAnalysis;
 
 mod commands;
 mod api;
 
 struct Bot {
     robotevents: RobotEvents,
+    vrcdataanalysis : VrcDataAnalysis
 }
 
 #[async_trait]
@@ -32,7 +34,7 @@ impl EventHandler for Bot {
         if let Interaction::Command(command) = interaction {
             let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents).await),
+                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents, &self.vrcdataanalysis).await),
                 "wiki" => Some(commands::wiki::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
@@ -47,6 +49,8 @@ impl EventHandler for Bot {
                     println!("Cannot respond to slash command: {error}");
                 }
             }
+        } else if let Interaction::Component(component) = interaction {
+
         }
     }
 }
@@ -61,7 +65,8 @@ async fn serenity(
     // Build client with token and default intents.
     let client = Client::builder(discord_token, GatewayIntents::empty())
         .event_handler(Bot {
-            robotevents: RobotEvents::new(robotevents_token)
+            robotevents: RobotEvents::new(robotevents_token),
+            vrcdataanalysis : VrcDataAnalysis {bearer_token: String::new(), req_client: reqwest::Client::new()}
         })
         .await
         .expect("Error creating client");

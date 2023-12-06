@@ -10,6 +10,7 @@ use serenity::model::Color;
 
 use crate::api::robotevents::client::RobotEvents;
 use crate::api::vrcdataanalysis::client::VrcDataAnalysis;
+use crate::api::vrcdataanalysis::schema::Data;
 
 pub async fn response(
     _ctx: &Context,
@@ -27,15 +28,17 @@ pub async fn response(
         };
 
     let program: &i64 =
-        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
-            number
+        &if interaction.data.options.len() < 2 {
+            1
+        } else if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
+            *number
         } else {
             return CreateInteractionResponse::Message(
                 CreateInteractionResponseMessage::new().content("Invalid program value."),
             );
         };
 
-    let data_analysis = vrcdataanalysis.team_data(team_number);
+    let data_analysis : Result<Data, reqwest::Error> = vrcdataanalysis.team_data(team_number).await;
 
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
@@ -83,6 +86,12 @@ pub async fn response(
                     },
                 )));
             }
+            let mut trueskill = "";
+            if data_analysis.is_ok() {
+                let trueskill = data_analysis.unwrap().trueskill_ranking.to_string().as_str();
+            } else {
+                trueskill = "No ranking";
+            }
 
             let embed = CreateEmbed::new()
                 .title(format!(
@@ -108,7 +117,7 @@ pub async fn response(
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
-                .field("Trueskill ranking", data_analysis.trueskill_ranking, true)
+                .field("Trueskill ranking", trueskill, true)
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),
@@ -150,12 +159,12 @@ pub fn register() -> CreateCommand {
                 .required(true),
         )
         .add_option(
-            CreateCommandOption::new(CommandOptionType::Integer, "Program", "Program Name")
+            CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name")
                 .required(false)
                 //these integer values are the program ids
                 //VRC is 1, VEXU is 4, and VEXIQ is 41
-                .add_string_choice("VRC", 1)
-                .add_string_choice("VEXU", 4)
-                .add_string_choice("VEXIQ", 41)
+                .add_int_choice("VRC", 1)
+                .add_int_choice("VEXU", 4)
+                .add_int_choice("VEXIQ", 41)
         )
 }
