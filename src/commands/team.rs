@@ -1,4 +1,4 @@
-use serenity::all::{CommandDataOptionValue, CommandOptionType, ReactionType};
+use serenity::all::{CommandDataOptionValue, CommandOptionType, ReactionType, ActionRowComponent};
 use serenity::builder::{
     CreateActionRow, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
     CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind,
@@ -28,52 +28,61 @@ pub async fn response(
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
 
-            let page_menu = CreateSelectMenu::new(
-                "team_page_select",
-                CreateSelectMenuKind::String {
-                    options: vec![
-                        CreateSelectMenuOption::new("Team Info", "team")
-                            .emoji(ReactionType::Unicode("🗿".to_string()))
-                            .description("General information about the team")
-                            .default_selection(true),
-                        CreateSelectMenuOption::new("Awards", "awards")
-                            .emoji(ReactionType::Unicode("🏆".to_string()))
-                            .description("Awards from events throughout the season"),
-                        CreateSelectMenuOption::new("Skills", "skills")
-                            .emoji(ReactionType::Unicode("📄".to_string()))
-                            .description("Skills scores"),
-                        CreateSelectMenuOption::new("Trueskill", "trueskill")
-                            .emoji(ReactionType::Unicode("📊".to_string()))
-                            .description("TrueSkill ranking from vrc-data-analysis"),
-                        CreateSelectMenuOption::new("Events", "events")
-                            .emoji(ReactionType::Unicode("🗓️".to_string()))
-                            .description("Event attendance from this team"),
-                    ],
-                },
-            );
+            let mut message_components: Vec<CreateActionRow> = vec![
+                CreateActionRow::SelectMenu(CreateSelectMenu::new(
+                    "team_page_select",
+                    CreateSelectMenuKind::String {
+                        options: vec![
+                            CreateSelectMenuOption::new("Team Info", "team")
+                                .emoji(ReactionType::Unicode("🗿".to_string()))
+                                .description("General information about the team")
+                                .default_selection(true),
+                            CreateSelectMenuOption::new("Awards", "awards")
+                                .emoji(ReactionType::Unicode("🏆".to_string()))
+                                .description("Awards from events throughout the season"),
+                            CreateSelectMenuOption::new("Skills", "skills")
+                                .emoji(ReactionType::Unicode("📄".to_string()))
+                                .description("Skills scores"),
+                            CreateSelectMenuOption::new("Trueskill", "trueskill")
+                                .emoji(ReactionType::Unicode("📊".to_string()))
+                                .description("TrueSkill ranking from vrc-data-analysis"),
+                            CreateSelectMenuOption::new("Events", "events")
+                                .emoji(ReactionType::Unicode("🗓️".to_string()))
+                                .description("Event attendance from this team"),
+                        ],
+                    },
+                ))
+            ];
 
-            let season_menu = CreateSelectMenu::new(
-                "team_season_select",
-                CreateSelectMenuKind::String {
-                    options: vec![
-                        CreateSelectMenuOption::new("Season 1", "opt_1").description("2022-2023"),
-                        CreateSelectMenuOption::new("Season 2", "opt_2")
-                            .description("2023-2024")
-                            .default_selection(true),
-                    ],
-                },
-            );
+            if let Ok(seasons) = robotevents.team_active_seasons(&team).await {
+                message_components.push(CreateActionRow::SelectMenu(CreateSelectMenu::new(
+                    "team_season_select",
+                    CreateSelectMenuKind::String {
+                        options: seasons
+                            .iter()
+                            .map(|season| {
+                                CreateSelectMenuOption::new(
+                                    &season.name,
+                                    format!("option_season_{}", season.id),
+                                )
+                                .description(format!("{}-{}", season.years_start, season.years_end))
+                            })
+                            .collect(),
+                    },
+                )));
+            }
 
             let embed = CreateEmbed::new()
-                .title(format!("Team {}", team.number))
-                .url(format!("https://www.robotevents.com/teams/{}/{}", team.program.code, team.number))
+                .title(format!(
+                    "{} ({} {})",
+                    team.number, team.program.code, team.grade
+                ))
+                .url(format!(
+                    "https://www.robotevents.com/teams/{}/{}",
+                    team.program.code, team.number
+                ))
                 .description(team.team_name)
                 .field("Organization", team.organization, true)
-                .field(
-                    "Program",
-                    format!("{} {}", team.program.code, team.grade),
-                    true,
-                )
                 .field(
                     "Location",
                     format!(
@@ -104,12 +113,7 @@ pub async fn response(
                 embed
             };
 
-            let message = CreateInteractionResponseMessage::new()
-                .components(vec![
-                    CreateActionRow::SelectMenu(page_menu),
-                    CreateActionRow::SelectMenu(season_menu),
-                ])
-                .embed(embed);
+            let message = CreateInteractionResponseMessage::new().components(message_components).embed(embed);
 
             CreateInteractionResponse::Message(message)
         } else {

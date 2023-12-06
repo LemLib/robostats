@@ -37,7 +37,7 @@ pub struct Meta {
     first_page_url: String,
     from: i32,
     last_page: i32,
-    last_page_url: String,
+    prev_page_url: Option<String>,
     next_page_url: Option<String>,
     path: String,
     per_page: i32,
@@ -77,8 +77,8 @@ pub struct Season {
     pub program: IdInfo,
     pub start: String,
     pub end: String,
-    pub years_start: String,
-    pub years_end: String,
+    pub years_start: i32,
+    pub years_end: i32,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
