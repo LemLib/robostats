@@ -15,7 +15,16 @@ use serenity::model::application::CommandInteraction;
 lazy_static! {
 static ref PRIVILEGES : HashMap<&'static str, (&'static str, &'static str)> = {
         let mut map = HashMap::new();
-        map.insert("main", ("https://wiki.purduesigbots.com/", "Sigbots Main Page"));
+        map.insert("main", ("https://wiki.purduesigbots.com/", "Sigbots: Main Page"));
+        map.insert("building", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts", "Sigbots: Useful Building Techniques"));
+        map.insert("structure", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/structure", "Sigbots: Structural Parts"));
+        map.insert("motion", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/motion", "Sigbots: Motion parts"));
+        map.insert("joints", ("https://wiki.purduesigbots.com/hardware/vex-joints", "Sigbots: Joints"));
+        map.insert("drives", ("https://wiki.purduesigbots.com/hardware/vex-drivetrains", "Sigbots: Drivetrains"));
+        map.insert("lifts", ("https://wiki.purduesigbots.com/hardware/lifts", "Sigbots: Lift Mechanisms"));
+        map.insert("intakes", ("https://wiki.purduesigbots.com/hardware/intakes", "Sigbots: Intake Mechanisms"));
+        map.insert("launchers", ("https://wiki.purduesigbots.com/hardware/shooting-mechanisms", "Sigbots: Launching Mechanisms"));
+        map.insert("pneumatics", ("https://wiki.purduesigbots.com/hardware/pneumatics", "Sigbots: Pneumatics"));
         map
         };
 }
