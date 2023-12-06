@@ -70,7 +70,7 @@ pub async fn response(
                 .field("Organization", team.organization, true)
                 .field(
                     "Program",
-                    format!("{} {}", team.program.code, team.grade),
+                    format!("{} {}", team.program.code, serde_json::to_string(&team.grade).unwrap_or_else(|_| "(Unknown Grade)".to_string())),
                     true,
                 )
                 .field(

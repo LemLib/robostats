@@ -1,4 +1,4 @@
-use crate::api::robotevents::model::*;
+use crate::api::robotevents::schema::*;
 use reqwest::header::USER_AGENT;
 use std::time::Duration;
 

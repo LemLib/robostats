@@ -6,6 +6,20 @@ pub struct RobotEventsResponse<T> {
     pub data: Vec<T>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum Grade {
+    College,
+
+    #[serde(rename = "High School")]
+    HighSchool,
+
+    #[serde(rename = "Middle School")]
+    MiddleSchool,
+
+    #[serde(rename = "Elementary School")]
+    ElementarySchool
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Meta {
     current_page: i32,
@@ -20,7 +34,7 @@ pub struct Meta {
     total: i32,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Team {
     pub id: i32,
     pub number: String,
@@ -29,11 +43,11 @@ pub struct Team {
     pub organization: String,
     pub location: Location,
     pub registered: bool,
-    pub program: Program,
-    pub grade: String,
+    pub program: IdInfo,
+    pub grade: Grade,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Location {
     pub venue: Option<String>,
     pub address_1: String,
@@ -51,8 +65,8 @@ pub struct Coordinates {
     pub lon: f32,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Program {
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IdInfo {
     pub id: i32,
     pub name: String,
     pub code: String,
