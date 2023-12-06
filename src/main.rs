@@ -32,7 +32,7 @@ impl EventHandler for Bot {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
-            let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
+            let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
                 "team" => Some(commands::team::response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis).await),
                 "wiki" => Some(commands::wiki::response(&ctx, &command)),

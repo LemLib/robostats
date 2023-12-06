@@ -35,8 +35,12 @@ pub async fn response(
             );
         };
 
-    let data_analysis = vrc_data_analysis.team_info(team_number).await;
-
+    let trueskill = if let Ok(data_analysis) = vrc_data_analysis.team_info(team_number).await {
+        data_analysis.trueskill_ranking.to_string()
+    } else {
+        "No ranking".to_string()
+    };
+      
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
@@ -103,6 +107,7 @@ pub async fn response(
                     ),
                     true,
                 )
+                .field("TrueSkill Ranking", trueskill, true)
                 .field(
                     "Registered",
                     if team.registered { "Yes" } else { "No" },
@@ -119,10 +124,6 @@ pub async fn response(
                 if !robot_name.is_empty() {
                     embed = embed.field("Robot Name", robot_name, true)
                 }
-            }
-
-            if let Ok(data_analysis) = data_analysis {
-                embed = embed.field("TrueSkill Ranking", data_analysis.trueskill_ranking.to_string(), true)
             }
 
             let message = CreateInteractionResponseMessage::new().components(message_components).embed(embed);
