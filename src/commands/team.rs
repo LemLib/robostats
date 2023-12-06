@@ -1,4 +1,4 @@
-use serenity::all::{CommandDataOptionValue, CommandOptionType, ReactionType, ActionRowComponent};
+use serenity::all::{CommandDataOptionValue, CommandOptionType, ReactionType};
 use serenity::builder::{
     CreateActionRow, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
     CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind,
@@ -10,13 +10,12 @@ use serenity::model::Color;
 
 use crate::api::robotevents::client::RobotEvents;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
-use crate::api::vrc_data_analysis::schema::TeamInfo;
 
 pub async fn response(
     _ctx: &Context,
     interaction: &CommandInteraction,
     robotevents: &RobotEvents,
-    vrcdataanalysis: &VRCDataAnalysis,
+    vrc_data_analysis: &VRCDataAnalysis,
 ) -> CreateInteractionResponse {
     let team_number =
         if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
@@ -28,17 +27,15 @@ pub async fn response(
         };
 
     let program: &i64 =
-        &if interaction.data.options.len() < 2 {
-            1
-        } else if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
-            *number
+        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
+            number
         } else {
             return CreateInteractionResponse::Message(
                 CreateInteractionResponseMessage::new().content("Invalid program value."),
             );
         };
 
-    let data_analysis : Result<TeamInfo, reqwest::Error> = vrcdataanalysis.team_info(team_number).await;
+    let data_analysis = vrc_data_analysis.team_info(team_number).await;
 
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
@@ -86,7 +83,8 @@ pub async fn response(
                     },
                 )));
             }
-            let embed = CreateEmbed::new()
+
+            let mut embed = CreateEmbed::new()
                 .title(format!(
                     "{} ({} {})",
                     team.number, team.program.code, team.grade
@@ -110,7 +108,6 @@ pub async fn response(
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
-
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),
@@ -118,15 +115,15 @@ pub async fn response(
                     _ => Default::default(),
                 });
 
-            let embed = if let Some(robot_name) = team.robot_name {
+            if let Some(robot_name) = team.robot_name {
                 if !robot_name.is_empty() {
-                    embed.field("Robot Name", robot_name, true)
-                } else {
-                    embed
+                    embed = embed.field("Robot Name", robot_name, true)
                 }
-            } else {
-                embed
-            };
+            }
+
+            if let Ok(data_analysis) = data_analysis {
+                embed = embed.field("TrueSkill Ranking", data_analysis.trueskill_ranking.to_string(), true)
+            }
 
             let message = CreateInteractionResponseMessage::new().components(message_components).embed(embed);
 
