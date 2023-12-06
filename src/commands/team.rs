@@ -9,11 +9,13 @@ use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
 use crate::api::robotevents::client::RobotEvents;
+use crate::api::vrcdataanalysis::client::VrcDataAnalysis;
 
 pub async fn response(
     _ctx: &Context,
     interaction: &CommandInteraction,
     robotevents: &RobotEvents,
+    vrcdataanalysis: &VrcDataAnalysis,
 ) -> CreateInteractionResponse {
     let team_number =
         if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
@@ -33,7 +35,7 @@ pub async fn response(
             );
         };
 
-
+    let data_analysis = vrcdataanalysis.team_data(team_number);
 
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
@@ -106,6 +108,7 @@ pub async fn response(
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
+                .field("Trueskill ranking", data_analysis.trueskill_ranking, true)
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),

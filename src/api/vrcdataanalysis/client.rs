@@ -1,4 +1,4 @@
-use crate::api::robotevents::schema::*;
+use crate::api::vrcdataanalysis::schema::*;
 use reqwest::header::USER_AGENT;
 use std::time::Duration;
 
@@ -25,9 +25,9 @@ impl VrcDataAnalysis {
             .unwrap())
     }
 
-    pub async fn team_data(&self, team_number: &str, program: i32) -> Result<Vec<Team>, reqwest::Error> {
+    pub async fn team_data(&self, team_number: &str) -> Result<Data, reqwest::Error> {
         let response = self.request(format!("/team/{team_number}")).await?;
-        Ok(response.json::<RobotEventsResponse<Team>>().await?.data)
+        Ok(response.json().await?)
     }
 
 }
