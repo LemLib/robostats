@@ -62,7 +62,7 @@ pub async fn response(_ctx: &Context, interaction: &CommandInteraction, roboteve
                 ])
                 .add_embed(
                     CreateEmbed::new()
-                        .title(format!("Team {}", team_number))
+                        .title(format!("Team {}", team.number))
                         .description(team.team_name)
                         .field("Organization", team.organization, true)
                         .field("Grade", team.grade, true)    
