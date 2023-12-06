@@ -70,12 +70,7 @@ pub async fn response(
                 .field("Organization", team.organization, true)
                 .field(
                     "Program",
-                    format!("{} {}", team.program.code, serde_json::to_string(&team.grade).unwrap_or_else(|_| "(Unknown Grade)".to_string())),
-                    true,
-                )
-                .field(
-                    "Registered",
-                    if team.registered { "Yes" } else { "No" },
+                    format!("{} {}", team.program.code, team.grade),
                     true,
                 )
                 .field(
@@ -84,6 +79,11 @@ pub async fn response(
                         "{}, {}, {}",
                         team.location.city, team.location.region, team.location.country
                     ),
+                    true,
+                )
+                .field(
+                    "Registered",
+                    if team.registered { "Yes" } else { "No" },
                     true,
                 )
                 .color(match team.program.code.as_ref() {

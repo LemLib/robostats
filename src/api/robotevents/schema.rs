@@ -20,6 +20,17 @@ pub enum Grade {
     ElementarySchool
 }
 
+impl std::fmt::Display for Grade {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::College => "College",
+            Self::HighSchool => "High School",
+            Self::MiddleSchool => "Middle School",
+            Self::ElementarySchool => "Elementary School"
+        })
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Meta {
     current_page: i32,
