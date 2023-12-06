@@ -1,3 +1,4 @@
+use api::robotevents::client::RobotEvents;
 use shuttle_secrets::SecretStore;
 
 use serenity::all::Command;
@@ -8,8 +9,11 @@ use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 
 mod commands;
+mod api;
 
-struct Bot;
+struct Bot {
+    robotevents: RobotEvents,
+}
 
 #[async_trait]
 impl EventHandler for Bot {
@@ -28,7 +32,7 @@ impl EventHandler for Bot {
         if let Interaction::Command(command) = interaction {
             let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command)),
+                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents).await),
                 "wiki" => Some(commands::wiki::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
@@ -51,11 +55,16 @@ impl EventHandler for Bot {
 async fn serenity(
     #[shuttle_secrets::Secrets] secrets: SecretStore
 ) -> shuttle_serenity::ShuttleSerenity {
-    // Configure the client with your Discord bot token in the environment.
-    let token = secrets.get("DISCORD_TOKEN").expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
+    let discord_token = secrets.get("DISCORD_TOKEN").expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
+    let robotevents_token = secrets.get("ROBOTEVENTS_TOKEN").expect("Couldn't find ROBOTEVENTS_TOKEN in SecretStore. Do you have a Secrets.toml?");
 
     // Build client with token and default intents.
-    let client = Client::builder(token, GatewayIntents::empty()).event_handler(Bot).await.expect("Error creating client");
+    let client = Client::builder(discord_token, GatewayIntents::empty())
+        .event_handler(Bot {
+            robotevents: RobotEvents::new(robotevents_token)
+        })
+        .await
+        .expect("Error creating client");
 
     Ok(client.into())
 }
