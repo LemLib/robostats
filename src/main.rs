@@ -7,6 +7,7 @@ use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMess
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
+use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 
 mod commands;
 mod api;

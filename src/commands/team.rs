@@ -9,14 +9,14 @@ use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
 use crate::api::robotevents::client::RobotEvents;
-use crate::api::vrcdataanalysis::client::VrcDataAnalysis;
-use crate::api::vrcdataanalysis::schema::Data;
+use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
+use crate::api::vrc_data_analysis::schema::TeamInfo;
 
 pub async fn response(
     _ctx: &Context,
     interaction: &CommandInteraction,
     robotevents: &RobotEvents,
-    vrcdataanalysis: &VrcDataAnalysis,
+    vrcdataanalysis: &VRCDataAnalysis,
 ) -> CreateInteractionResponse {
     let team_number =
         if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
@@ -38,7 +38,7 @@ pub async fn response(
             );
         };
 
-    let data_analysis : Result<Data, reqwest::Error> = vrcdataanalysis.team_data(team_number).await;
+    let data_analysis : Result<TeamInfo, reqwest::Error> = vrcdataanalysis.team_info(team_number).await;
 
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
@@ -86,13 +86,6 @@ pub async fn response(
                     },
                 )));
             }
-            let mut trueskill = "";
-            if data_analysis.is_ok() {
-                let trueskill = data_analysis.unwrap().trueskill_ranking.to_string().as_str();
-            } else {
-                trueskill = "No ranking";
-            }
-
             let embed = CreateEmbed::new()
                 .title(format!(
                     "{} ({} {})",
@@ -117,7 +110,7 @@ pub async fn response(
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
-                .field("Trueskill ranking", trueskill, true)
+
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),
