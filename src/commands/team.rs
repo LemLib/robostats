@@ -124,6 +124,37 @@ pub async fn response(
     }
 }
 
+//smth smth idk if this works it's too late for my brain to function rn but I wanted this to be here for the morning
+    let resp = command.get_interaction_response(&ctx.http).await?;
+    let mut cib = resp
+        .await_component_interactions(&ctx.shard)
+        .timeout(Duration::from_secs(120));
+    let mut cic = cib.build();
+    let mut formatter = String::from("clangformat");
+    let mut selected = false;
+    while let Some(interaction) = &cic.next().await {
+        match interaction.data.custom_id.as_str() {
+            "formatter" => {
+                formatter = interaction.data.values[0].clone();
+                interaction.defer(&ctx.http).await?;
+            }
+            "select" => {
+                interaction.defer(&ctx.http).await?;
+                selected = true;
+                cic.stop();
+                break;
+            }
+            _ => {
+                unreachable!("Cannot get here..");
+            }
+        }
+    }
+
+    // interaction expired...
+    if !selected {
+        return Ok(());
+    }
+
 pub fn register() -> CreateCommand {
     CreateCommand::new("team")
         .description("Displays information about a team")
