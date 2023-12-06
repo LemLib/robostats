@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use hashlink::linked_hash_map::LinkedHashMap;
 use lazy_static::lazy_static;
 use serenity::all::{CommandDataOptionValue, CommandOptionType};
 use serenity::builder::{
@@ -13,8 +12,8 @@ use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 
 lazy_static! {
-static ref PRIVILEGES : HashMap<&'static str, (&'static str, &'static str)> = {
-        let mut map = HashMap::new();
+static ref PRIVILEGES : LinkedHashMap<&'static str, (&'static str, &'static str)> = {
+        let mut map = LinkedHashMap::new();
         map.insert("main", ("https://wiki.purduesigbots.com/", "Sigbots: Main Page"));
         map.insert("building", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts", "Sigbots: Useful Building Techniques"));
         map.insert("structure", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/structure", "Sigbots: Structural Parts"));
