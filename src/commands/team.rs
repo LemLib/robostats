@@ -51,6 +51,7 @@ pub async fn response(
                     ],
                 },
             );
+            
             let season_menu = CreateSelectMenu::new(
                 "team_season_select",
                 CreateSelectMenuKind::String {
@@ -116,9 +117,9 @@ pub async fn response(
 
 pub fn register() -> CreateCommand {
     CreateCommand::new("team")
-        .description("Embed Test")
+        .description("Displays information about a team")
         .add_option(
             CreateCommandOption::new(CommandOptionType::String, "team", "Team Number")
-                .required(true),
+                .required(true)
         )
 }
