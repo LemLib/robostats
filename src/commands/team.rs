@@ -108,7 +108,7 @@ pub async fn response(
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
-                .field("Trueskill ranking", data_analysis.trueskill_ranking, true)
+                //.field("Trueskill ranking", data_analysis.get("trueskill_ranking"), true)
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),

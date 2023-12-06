@@ -1,6 +1,7 @@
 use crate::api::vrcdataanalysis::schema::*;
 use reqwest::header::USER_AGENT;
 use std::time::Duration;
+use crate::api::vrcdataanalysis::schema::{Data};
 
 pub struct VrcDataAnalysis {
     pub bearer_token: String,
@@ -27,7 +28,7 @@ impl VrcDataAnalysis {
 
     pub async fn team_data(&self, team_number: &str) -> Result<Data, reqwest::Error> {
         let response = self.request(format!("/team/{team_number}")).await?;
-        Ok(response.json().await?)
+        Ok(response.json::<Data>())
     }
 
 }
