@@ -25,7 +25,7 @@ pub struct Team {
     pub id: i32,
     pub number: String,
     pub team_name: String,
-    pub robot_name: String,
+    pub robot_name: Option<String>,
     pub organization: String,
     pub location: Location,
     pub registered: bool,

@@ -63,37 +63,42 @@ pub async fn response(
                 },
             );
 
+            let embed = CreateEmbed::new()
+                .title(format!("Team {}", team.number))
+                .description(team.team_name)
+                .field("Organization", team.organization, true)
+                .field("Program", format!("{} {}", team.program.code, team.grade), true)
+                .field(
+                    "Registered",
+                    if team.registered { "Yes" } else { "No" },
+                    true,
+                )
+                .field(
+                    "Location",
+                    format!("{}, {}, {}", team.location.city, team.location.region, team.location.country),
+                    true
+                )
+                .color(
+                    match team.program.code.as_ref() {
+                        "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
+                        "VIQRC" => Color::from_rgb(0, 119, 200),
+                        "VAIRC" => Color::from_rgb(91, 91, 91),
+                        _ => Default::default()
+                    }
+                );
+            
+            let embed = if let Some(robot_name) = team.robot_name {
+                embed.field("Robot Name", robot_name, true)
+            } else {
+                embed
+            };
+
             let message = CreateInteractionResponseMessage::new()
                 .components(vec![
                     CreateActionRow::SelectMenu(page_menu),
                     CreateActionRow::SelectMenu(season_menu),
                 ])
-                .add_embed(
-                    CreateEmbed::new()
-                        .title(format!("Team {}", team.number))
-                        .description(team.team_name)
-                        .field("Organization", team.organization, true)
-                        .field("Program", format!("{} {}", team.program.code, team.grade), true)
-                        .field(
-                            "Registered",
-                            if team.registered { "Yes" } else { "No" },
-                            true,
-                        )
-                        .field("Robot Name", team.robot_name, true)
-                        .field(
-                            "Location",
-                            format!("{}, {}, {}", team.location.city, team.location.region, team.location.country),
-                            true
-                        )
-                        .color(
-                            match team.program.code.as_ref() {
-                                "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                                "VIQRC" => Color::from_rgb(0, 119, 200),
-                                "VAIRC" => Color::from_rgb(91, 91, 91),
-                                _ => Default::default()
-                            }
-                        ),
-                );
+                .embed(embed);
 
             CreateInteractionResponse::Message(message)
         } else {
