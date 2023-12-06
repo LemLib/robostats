@@ -72,7 +72,7 @@ pub async fn response(
                         .title(format!("Team {}", team.number))
                         .description(team.team_name)
                         .field("Organization", team.organization, true)
-                        .field("Program", team.grade, true)
+                        .field("Program", format!("{} {}", team.program.code, team.grade), true)
                         .field(
                             "Registered",
                             if team.registered { "Yes" } else { "No" },
