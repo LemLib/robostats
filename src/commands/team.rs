@@ -147,12 +147,12 @@ pub fn register() -> CreateCommand {
                 .required(true),
         )
         .add_option(
-            CreateCommandOption::new(CommandOptionType::Integer, "Program", "Program Name")
+            CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name")
                 .required(false)
                 //these integer values are the program ids
                 //VRC is 1, VEXU is 4, and VEXIQ is 41
-                .add_string_choice("VRC", 1)
-                .add_string_choice("VEXU", 4)
-                .add_string_choice("VEXIQ", 41)
+                .add_int_choice("VRC", 1)
+                .add_int_choice("VEXU", 4)
+                .add_int_choice("VEXIQ", 41)
         )
 }
