@@ -24,8 +24,8 @@ pub async fn response(
             );
         };
 
-    let program: i32 =
-        if let CommandDataOptionValue::i32(number) = &interaction.data.options[1].value {
+    let program: &i64 =
+        if let CommandDataOptionValue::Integer(number) = &interaction.data.options[1].value {
             number
         } else {
             return CreateInteractionResponse::Message(
@@ -147,7 +147,7 @@ pub fn register() -> CreateCommand {
                 .required(true),
         )
         .add_option(
-            CreateCommandOption::new(CommandOptionType::i32, "Program", "Program Name")
+            CreateCommandOption::new(CommandOptionType::Integer, "Program", "Program Name")
                 .required(false)
                 //these integer values are the program ids
                 //VRC is 1, VEXU is 4, and VEXIQ is 41
