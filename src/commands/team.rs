@@ -40,12 +40,9 @@ pub async fn response(
                             CreateSelectMenuOption::new("Awards", "awards")
                                 .emoji(ReactionType::Unicode("🏆".to_string()))
                                 .description("Awards from events throughout the season"),
-                            CreateSelectMenuOption::new("Skills", "skills")
-                                .emoji(ReactionType::Unicode("📄".to_string()))
-                                .description("Skills scores"),
-                            CreateSelectMenuOption::new("Trueskill", "trueskill")
+                            CreateSelectMenuOption::new("Stats", "stats")
                                 .emoji(ReactionType::Unicode("📊".to_string()))
-                                .description("TrueSkill ranking from vrc-data-analysis"),
+                                .description("Team statistics & rankings"),
                             CreateSelectMenuOption::new("Events", "events")
                                 .emoji(ReactionType::Unicode("🗓️".to_string()))
                                 .description("Event attendance from this team"),
