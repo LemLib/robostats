@@ -37,12 +37,14 @@ pub async fn response(
             );
         };
 
-    let trueskill = if let Ok(data_analysis) = vrc_data_analysis.team_info(team_number).await {
+    let trueskill = if *program != 1i64 {
+        "Trueskill not supported".to_string()
+    } else if let Ok(data_analysis) = vrc_data_analysis.team_info(team_number).await {
         data_analysis.trueskill_ranking.to_string()
     } else {
         "No ranking".to_string()
     };
-      
+
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
@@ -52,17 +54,17 @@ pub async fn response(
                     "team_page_select",
                     CreateSelectMenuKind::String {
                         options: vec![
-                            CreateSelectMenuOption::new("Team Info", "team")
+                            CreateSelectMenuOption::new("Team Info", "team_oage")
                                 .emoji(ReactionType::Unicode("🗿".to_string()))
                                 .description("General information about the team")
                                 .default_selection(true),
-                            CreateSelectMenuOption::new("Awards", "awards")
+                            CreateSelectMenuOption::new("Awards", "awards_page")
                                 .emoji(ReactionType::Unicode("🏆".to_string()))
                                 .description("Awards from events throughout the season"),
-                            CreateSelectMenuOption::new("Stats", "stats")
+                            CreateSelectMenuOption::new("Stats", "stats_page")
                                 .emoji(ReactionType::Unicode("📊".to_string()))
                                 .description("Team statistics & rankings"),
-                            CreateSelectMenuOption::new("Events", "events")
+                            CreateSelectMenuOption::new("Events", "events_page")
                                 .emoji(ReactionType::Unicode("🗓️".to_string()))
                                 .description("Event attendance from this team"),
                         ],
@@ -82,8 +84,8 @@ pub async fn response(
                                     &season.name,
                                     format!("option_season_{}", season.id),
                                 )
-                                .default_selection(i == 0)
-                                .description(format!("{}-{}", season.years_start, season.years_end))
+                                    .default_selection(i == 0)
+                                    .description(format!("{}-{}", season.years_start, season.years_end))
                             })
                             .collect(),
                     },
@@ -116,9 +118,9 @@ pub async fn response(
                     true,
                 )
                 .color(match team.program.code.as_ref() {
-                    "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                    "VIQRC" => Color::from_rgb(0, 119, 200),
-                    "VAIRC" => Color::from_rgb(91, 91, 91),
+                    "VRC" | "VEXU" | "TSA VRC" => Color::from_rgb(210, 38, 48),
+                    "VIQRC" | "TSA VIQRC" => Color::from_rgb(0, 119, 200),
+                    "VAIRC" => Color::from_rgb(00, 255, 00),
                     _ => Default::default(),
                 });
 
@@ -155,9 +157,11 @@ pub fn register() -> CreateCommand {
             CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name")
                 .required(false)
                 //these integer values are the program ids
-                //VRC is 1, VEXU is 4, and VEXIQ is 41
                 .add_int_choice("VRC", 1)
                 .add_int_choice("VEXU", 4)
-                .add_int_choice("VEXIQ", 41)
+                .add_int_choice("VIQRC", 41)
+                .add_int_choice("TSA VRC", 46)
+                .add_int_choice("TSA VIQRC", 47)
+                .add_int_choice("VAIRC", 57)
         )
 }
