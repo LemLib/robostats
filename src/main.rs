@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 use api::robotevents::client::RobotEvents;
 use shuttle_secrets::SecretStore;
 
