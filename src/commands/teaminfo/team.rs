@@ -1,4 +1,4 @@
-use serenity::all::{CommandDataOptionValue, CommandOptionType};
+use serenity::all::{CommandDataOption, CommandDataOptionValue, CommandOptionType, CreateActionRow, CreateEmbed};
 use serenity::builder::{
     CreateCommand, CreateCommandOption, CreateInteractionResponse,
     CreateInteractionResponseMessage,
@@ -24,34 +24,25 @@ pub async fn response(
         };
     let arg_program = interaction.data.options.iter().find(|a| a.name == "program");
     let arg_page = interaction.data.options.iter().find(|b| b.name == "page");
-    let program: i64 =
-        if arg_program.is_none() {
-            1i64
-        } else if let CommandDataOptionValue::Integer(number) = arg_program.cloned().unwrap().value {
-            number
-        } else {
-            return CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("Invalid program value."));
-        };
-    let page: &str =
-        if arg_page.is_none() {
-            "general"
-        } else if let CommandDataOptionValue::String(str) = arg_page.cloned().unwrap().value {
-            str.as_str()
-        } else {
-            return CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("Invalid page."));
-        };
-
+    let program: i64 = match arg_program.clone() {
+        None => 1,
+        Some(n) => n.value.as_i64().unwrap_or(1)
+    };
+    let page = match arg_page.clone() {
+        None => "general",
+        Some(s) => s.value.as_str().unwrap_or("invalid")
+    };
     let result = match page {
         "general" => create_general_embed(team_number, &program, robotevents, vrc_data_analysis, true).await,
         "awards" => create_awards_embed(team_number, &program, robotevents, vrc_data_analysis, true).await,
-        _ => Err("Invalid page (How did we get here?)")
+        _ => Err::<(CreateEmbed, Option<Vec<CreateActionRow>>), String>("Invalid page (How did we get here?)".to_string())
     };
 
 
     let message = match result {
         Ok((a, b)) => {
-            let response = CreateInteractionResponseMessage::new().embed(a);
-            if b.is_some() { response.components(b.unwrap()); }
+            let mut response = CreateInteractionResponseMessage::new().embed(a);
+            if b.is_some() { response = response.components(b.unwrap()); }
             response
         }
         Err(s) => CreateInteractionResponseMessage::new().content(s)

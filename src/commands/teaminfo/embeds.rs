@@ -65,7 +65,7 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
             } else if components {
                 Some(create_interactions(Vec::new()).await)
             } else {
-                None;
+                None::<Vec<CreateActionRow>>
             };
             let mut embed = CreateEmbed::new()
                 .title(format!(
@@ -115,7 +115,7 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
 }
 
 pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: &RobotEvents,
-                                 vrc_data_analysis: &VRCDataAnalysis, components: bool) -> Result<(CreateEmbed, Option<Vec<CreateActionRow>>), String> {
+                                 _: &VRCDataAnalysis, components: bool) -> Result<(CreateEmbed, Option<Vec<CreateActionRow>>), String> {
     if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
@@ -124,7 +124,7 @@ pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: 
             } else if components {
                 Some(create_interactions(Vec::new()).await)
             } else {
-                None;
+                None::<Vec<CreateActionRow>>
             };
 
             let mut embed = CreateEmbed::new()
