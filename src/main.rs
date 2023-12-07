@@ -25,7 +25,7 @@ impl EventHandler for Bot {
         // Register slash commands
         Command::set_global_commands(&ctx.http, vec![
             commands::ping::register(),
-            commands::team::register(),
+            commands::teaminfo::team::register(),
             commands::wiki::register()
         ]).await.expect("Failed to register slash commands.");
     }
@@ -34,7 +34,7 @@ impl EventHandler for Bot {
         if let Interaction::Command(command) = interaction {
             let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis).await),
+                "team" => Some(commands::teaminfo::team::response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis).await),
                 "wiki" => Some(commands::wiki::response(&ctx, &command)),
                 _ => {
                     let message = CreateInteractionResponseMessage::new().content("not implemented :(");
@@ -48,6 +48,14 @@ impl EventHandler for Bot {
                 if let Err(error) = command.create_response(&ctx.http, response).await {
                     println!("Cannot respond to slash command: {error}");
                 }
+            }
+        } else if let Interaction::Component(component) = interaction {
+            match component.data.custom_id.as_str() {
+                "team_page_response" => {}
+                "team_page_response" => {}
+                "team_page_response" => {}
+                "team_page_response" => {}
+                _ => {}
             }
         }
     }

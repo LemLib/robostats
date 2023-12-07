@@ -1,3 +1,3 @@
 pub mod ping;
-pub mod team;
 pub mod wiki;
+pub mod teaminfo;
