@@ -1,10 +1,10 @@
-use serenity::all::{ActionRow, Color, CreateActionRow, CreateEmbed, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, ReactionType};
+use serenity::all::{Color, CreateActionRow, CreateEmbed, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, ReactionType};
 
 use crate::api::robotevents::client::RobotEvents;
 use crate::api::robotevents::schema::{Season, Team};
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 
-pub async fn create_interactions(team : Team, seasons : Vec<Season>) -> Vec<CreateActionRow> {
+pub async fn create_interactions(team: Team, seasons: Vec<Season>) -> Vec<CreateActionRow> {
     let mut components = vec![
         CreateActionRow::SelectMenu(CreateSelectMenu::new(
             "team_page_select",
@@ -46,8 +46,9 @@ pub async fn create_interactions(team : Team, seasons : Vec<Season>) -> Vec<Crea
     )));
     components
 }
+
 pub async fn create_general_embed(team_number: &str, program: &i64, robotevents: &RobotEvents,
-                          vrc_data_analysis: &VRCDataAnalysis) -> Result<(CreateEmbed, Vec<CreateActionRow>), String> {
+                                  vrc_data_analysis: &VRCDataAnalysis) -> Result<(CreateEmbed, Vec<CreateActionRow>), String> {
     let trueskill = if *program != 1i64 {
         "Not supported for program".to_string()
     } else if let Ok(data_analysis) = vrc_data_analysis.team_info(team_number).await {
@@ -60,7 +61,7 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
             let mut message_components: Vec<CreateActionRow> = if let Ok(seasons) = robotevents.team_active_seasons(&team).await {
-                 create_interactions(team.clone(), seasons).await
+                create_interactions(team.clone(), seasons).await
             } else {
                 create_interactions(team.clone(), Vec::new()).await
             };
@@ -112,3 +113,39 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
     }
 }
 
+pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: &RobotEvents,
+                                 vrc_data_analysis: &VRCDataAnalysis) -> Result<(CreateEmbed, Vec<CreateActionRow>), String> {
+    if let Ok(teams) = robotevents.find_teams(team_number, program).await {
+        if let Some(team) = teams.iter().next() {
+            let team = team.clone();
+            let mut message_components: Vec<CreateActionRow> = if let Ok(seasons) = robotevents.team_active_seasons(&team).await {
+                create_interactions(team.clone(), seasons).await
+            } else {
+                create_interactions(team.clone(), Vec::new()).await
+            };
+
+            let mut embed = CreateEmbed::new()
+                .title(format!(
+                    "{} ({} {}) Awards",
+                    team.number, team.program.code, team.grade
+                ))
+                .url(format!(
+                    "https://www.robotevents.com/teams/{}/{}",
+                    team.program.code, team.number
+                ))
+                .description(team.team_name)
+                .color(match team.program.code.as_ref() {
+                    "VRC" | "VEXU" | "TSA VRC" => Color::from_rgb(210, 38, 48),
+                    "VIQRC" | "TSA VIQRC" => Color::from_rgb(0, 119, 200),
+                    "VAIRC" => Color::from_rgb(00, 255, 00),
+                    _ => Default::default(),
+                });
+
+            return Ok((embed, message_components));
+        } else {
+            return Err("Failed to get information about team from RobotEvents".to_string());
+        }
+    } else {
+        return Err("Failed to get information from RobotEvents".to_string());
+    }
+}
