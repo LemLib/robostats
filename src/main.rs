@@ -4,16 +4,13 @@ use std::any::Any;
 use api::robotevents::client::RobotEvents;
 use shuttle_secrets::SecretStore;
 
-use serenity::all::{Color, Colour, Command, ComponentInteractionDataKind, Integration};
-use serenity::all::ActionRowComponent::SelectMenu;
-use serenity::all::ComponentType::StringSelect;
+use serenity::all::{Command, ComponentInteractionDataKind};
 use serenity::async_trait;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
-use crate::commands::teaminfo::embeds::{create_awards_embed, create_general_embed};
 
 mod commands;
 mod api;
@@ -37,7 +34,6 @@ impl EventHandler for Bot {
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        println!("Interaction!");
         if let Interaction::Command(command) = interaction {
             let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
@@ -87,9 +83,8 @@ impl EventHandler for Bot {
                         _ => 0i64
                     };
 
-                    let a = component.message.edit(ctx.clone(), commands::teaminfo::team::edit(&ctx, data, team_num, &program, &self.robotevents, &self.vrc_data_analysis).await).await;
+                    let _ = component.message.edit(ctx.clone(), commands::teaminfo::team::edit(&ctx.clone(), data, team_num, &program, &self.robotevents, &self.vrc_data_analysis).await).await;
                     component.create_response(ctx, CreateInteractionResponse::Acknowledge).await.expect("");
-                    println!("{}", a.is_ok());
                 }
                 _ => {}
             }
