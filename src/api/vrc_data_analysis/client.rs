@@ -1,6 +1,6 @@
-use reqwest::header::USER_AGENT;
 use std::time::Duration;
 
+use reqwest::header::USER_AGENT;
 use crate::api::vrc_data_analysis::schema::*;
 
 pub struct VRCDataAnalysis {
@@ -20,21 +20,19 @@ impl VRCDataAnalysis {
         &self,
         endpoint: impl AsRef<str>,
     ) -> Result<reqwest::Response, reqwest::Error> {
-        Ok(self
-            .req_client
-            .get(format!("{API_BASE}{}", endpoint.as_ref()))
-            .header("accept-language", "en")
-            .header(USER_AGENT, "RoboStats Discord Bot")
-            .timeout(Duration::from_secs(10))
-            .send()
-            .await
-            .unwrap())
+        self.req_client.get(format!("{API_BASE}{}", endpoint.as_ref())).header("accept-language", "en").header(USER_AGENT, "RoboStats Discord Bot").timeout(Duration::from_secs(10)).send().await
     }
 
     pub async fn team_info(&self, team_number: &str) -> Result<TeamInfo, reqwest::Error> {
         let response = self.request(format!("/team/{team_number}")).await;
         match response {
-            Ok(_) => Ok(response.unwrap().json().await?),
+            Ok(_) => {
+                let json = response.unwrap().json::<TeamInfo>().await;
+                match json {
+                    Ok(t) => Ok(t),
+                    Err(e) => Err(e),
+                }
+            }
             Err(e) => Err(e)
         }
     }
@@ -44,14 +42,20 @@ impl VRCDataAnalysis {
         red_alliance: (&str, &str),
         blue_alliance: (&str, &str),
     ) -> Result<Prediction, reqwest::Error> {
-        let response = self
-            .request(format!(
-                "/predict/{}/{}/{}/{}",
-                red_alliance.0, red_alliance.1, blue_alliance.0, blue_alliance.1
-            ))
-            .await?;
-
-        Ok(response.json().await?)
+        let response = self.request(format!(
+            "/predict/{}/{}/{}/{}",
+            red_alliance.0, red_alliance.1, blue_alliance.0, blue_alliance.1
+        )).await;
+        match response {
+            Ok(_) => {
+                let json = response.unwrap().json::<Prediction>().await;
+                match json {
+                    Ok(t) => Ok(t),
+                    Err(e) => Err(e),
+                }
+            }
+            Err(e) => Err(e)
+        }
     }
 
     pub async fn ccwm(
@@ -59,13 +63,19 @@ impl VRCDataAnalysis {
         red_alliance: (&str, &str),
         blue_alliance: (&str, &str),
     ) -> Result<CCWM, reqwest::Error> {
-        let response = self
-            .request(format!(
-                "/ccwmstrength/{}/{}/{}/{}",
-                red_alliance.0, red_alliance.1, blue_alliance.0, blue_alliance.1
-            ))
-            .await?;
-
-        Ok(response.json().await?)
+        let response = self.request(format!(
+            "/ccwmstrength/{}/{}/{}/{}",
+            red_alliance.0, red_alliance.1, blue_alliance.0, blue_alliance.1
+        )).await;
+        match response {
+            Ok(_) => {
+                let json = response.unwrap().json::<CCWM>().await;
+                match json {
+                    Ok(t) => Ok(t),
+                    Err(e) => Err(e),
+                }
+            }
+            Err(e) => Err(e)
+        }
     }
 }

@@ -1,4 +1,4 @@
-use serenity::all::{CommandDataOptionValue, CommandOptionType, EditMessage};
+use serenity::all::{CommandOptionType, EditMessage};
 use serenity::all::CreateInteractionResponse::Message;
 use serenity::builder::{
     CreateCommand, CreateCommandOption, CreateInteractionResponse,
@@ -17,20 +17,21 @@ pub async fn response(
     robotevents: &RobotEvents,
     vrc_data_analysis: &VRCDataAnalysis,
 ) -> CreateInteractionResponse {
-    let team_number = if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
-        number
-    } else {
-        return CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("Invalid team number."));
-    };
+    let team_number = interaction.data.options.iter().find(|a| a.name == "team").expect("").value.as_str().expect("");
+    let mut any_program = false;
     let arg_program = interaction.data.options.iter().find(|a| a.name == "program");
     let arg_page = interaction.data.options.iter().find(|b| b.name == "page");
-    let program: i64 = match arg_program.clone() {
-        None => 1,
+    let program: i64 = match arg_program {
+        None => {
+            any_program = true;
+            1
+        },
         Some(n) => n.value.as_i64().unwrap_or(1)
     };
-    let result = if let Ok(teams) = robotevents.find_teams(team_number, &program).await {
+    let result = if let Ok(teams) = robotevents.find_team_program(team_number, &program, any_program).await {
         if let Some(team) = teams.iter().next() {
-            let page = match arg_page.clone() {
+            println!("{:?}", team);
+            let page = match arg_page {
                 None => "general",
                 Some(s) => s.value.as_str().unwrap_or("invalid")
             };
@@ -62,7 +63,7 @@ pub async fn edit(
     robotevents: &RobotEvents,
     vrc_data_analysis: &VRCDataAnalysis,
 ) -> EditMessage {
-    let result = if let Ok(teams) = robotevents.find_teams(team_number, &program).await {
+    let result = if let Ok(teams) = robotevents.find_team_program(team_number, &program, false).await {
         if let Some(team) = teams.iter().next() {
             match page {
                 "team_page" => create_general_embed(team.clone(), robotevents, vrc_data_analysis, true).await,
