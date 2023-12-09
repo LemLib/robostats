@@ -8,7 +8,7 @@ use serenity::model::application::CommandInteraction;
 
 use crate::api::robotevents::client::RobotEvents;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
-use crate::commands::teaminfo::embeds::{create_awards_embed, create_general_embed};
+use crate::commands::teaminfo::embeds::{create_awards_embed, create_events_embed, create_general_embed, create_stats_embed};
 
 pub async fn response(
     _ctx: &Context,
@@ -35,6 +35,8 @@ pub async fn response(
     let result = match page {
         "general" => create_general_embed(team_number, &program, robotevents, vrc_data_analysis, true).await,
         "awards" => create_awards_embed(team_number, &program, robotevents, vrc_data_analysis, true).await,
+        "stats" => create_stats_embed(team_number, &program, robotevents, vrc_data_analysis, true).await,
+        "events" => create_events_embed(team_number, &program, robotevents, vrc_data_analysis, true).await,
         _ => Err::<(CreateEmbed, Option<Vec<CreateActionRow>>), String>("Invalid page (How did we get here?)".to_string())
     };
 
@@ -61,6 +63,8 @@ pub async fn edit(
     let result = match page {
         "team_page" => create_general_embed(team_number, program, robotevents, vrc_data_analysis, false).await,
         "awards_page" => create_awards_embed(team_number, program, robotevents, vrc_data_analysis, false).await,
+        "stats_page" => create_stats_embed(team_number, program, robotevents, vrc_data_analysis, false).await,
+        "events_page" => create_events_embed(team_number, program, robotevents, vrc_data_analysis, false).await,
         _ => Err::<(CreateEmbed, Option<Vec<CreateActionRow>>), String>("Invalid page (How did we get here?)".to_string())
     };
 

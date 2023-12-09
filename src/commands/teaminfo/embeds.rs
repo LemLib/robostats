@@ -135,7 +135,6 @@ pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: 
                     "https://www.robotevents.com/teams/{}/{}",
                     team.program.code, team.number
                 ))
-                .description(team.team_name)
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" | "TSA VRC" => Color::from_rgb(210, 38, 48),
                     "VIQRC" | "TSA VIQRC" => Color::from_rgb(0, 119, 200),
@@ -150,4 +149,86 @@ pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: 
     } else {
         Err("Failed to get information from RobotEvents".to_string())
     }
+
+
+}
+
+pub async fn create_stats_embed(team_number: &str, program: &i64, robotevents: &RobotEvents,
+                                 _: &VRCDataAnalysis, components: bool) -> Result<(CreateEmbed, Option<Vec<CreateActionRow>>), String> {
+    return if let Ok(teams) = robotevents.find_teams(team_number, program).await {
+        if let Some(team) = teams.iter().next() {
+            let team = team.clone();
+            let mut message_components: Option<Vec<CreateActionRow>> = if let Ok(seasons) = robotevents.team_active_seasons(&team).await && components {
+                Some(create_interactions(seasons).await)
+            } else if components {
+                Some(create_interactions(Vec::new()).await)
+            } else {
+                None::<Vec<CreateActionRow>>
+            };
+
+            let mut embed = CreateEmbed::new()
+                .title(format!(
+                    "{} ({} {}) Stats",
+                    team.number, team.program.code, team.grade
+                ))
+                .url(format!(
+                    "https://www.robotevents.com/teams/{}/{}",
+                    team.program.code, team.number
+                ))
+                .color(match team.program.code.as_ref() {
+                    "VRC" | "VEXU" | "TSA VRC" => Color::from_rgb(210, 38, 48),
+                    "VIQRC" | "TSA VIQRC" => Color::from_rgb(0, 119, 200),
+                    "VAIRC" => Color::from_rgb(00, 255, 00),
+                    _ => Default::default(),
+                });
+
+            Ok((embed, message_components))
+        } else {
+            Err("Failed to get information about team from RobotEvents".to_string())
+        }
+    } else {
+        Err("Failed to get information from RobotEvents".to_string())
+    }
+
+
+}
+
+pub async fn create_events_embed(team_number: &str, program: &i64, robotevents: &RobotEvents,
+                                 _: &VRCDataAnalysis, components: bool) -> Result<(CreateEmbed, Option<Vec<CreateActionRow>>), String> {
+    return if let Ok(teams) = robotevents.find_teams(team_number, program).await {
+        if let Some(team) = teams.iter().next() {
+            let team = team.clone();
+            let mut message_components: Option<Vec<CreateActionRow>> = if let Ok(seasons) = robotevents.team_active_seasons(&team).await && components {
+                Some(create_interactions(seasons).await)
+            } else if components {
+                Some(create_interactions(Vec::new()).await)
+            } else {
+                None::<Vec<CreateActionRow>>
+            };
+
+            let mut embed = CreateEmbed::new()
+                .title(format!(
+                    "{} ({} {}) Events",
+                    team.number, team.program.code, team.grade
+                ))
+                .url(format!(
+                    "https://www.robotevents.com/teams/{}/{}",
+                    team.program.code, team.number
+                ))
+                .color(match team.program.code.as_ref() {
+                    "VRC" | "VEXU" | "TSA VRC" => Color::from_rgb(210, 38, 48),
+                    "VIQRC" | "TSA VIQRC" => Color::from_rgb(0, 119, 200),
+                    "VAIRC" => Color::from_rgb(00, 255, 00),
+                    _ => Default::default(),
+                });
+
+            Ok((embed, message_components))
+        } else {
+            Err("Failed to get information about team from RobotEvents".to_string())
+        }
+    } else {
+        Err("Failed to get information from RobotEvents".to_string())
+    }
+
+
 }
