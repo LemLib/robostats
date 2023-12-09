@@ -89,7 +89,7 @@ pub fn register() -> CreateCommand {
         CreateCommandOption::new(CommandOptionType::String, "team", "Team Number").required(true),
     ).add_option(
         CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false)
-            //these integer values are the program ids.add_int_choice("VRC", 1).add_int_choice("VEXU", 4).add_int_choice("VIQRC", 41).add_int_choice("TSA VRC", 46).add_int_choice("TSA VIQRC", 47).add_int_choice("VAIRC", 57).max_int_value(57).min_int_value(1)
+            .add_int_choice("VRC", 1).add_int_choice("VEXU", 4).add_int_choice("VIQRC", 41).add_int_choice("TSA VRC", 46).add_int_choice("TSA VIQRC", 47).add_int_choice("VAIRC", 57).max_int_value(57).min_int_value(1)
     ).add_option(
         CreateCommandOption::new(CommandOptionType::String, "page", "The page to open to").required(false).add_string_choice("General Info", "general").add_string_choice("Awards", "awards").add_string_choice("Stats", "stats").add_string_choice("Event Record", "events")
     )
