@@ -32,9 +32,11 @@ impl VRCDataAnalysis {
     }
 
     pub async fn team_info(&self, team_number: &str) -> Result<TeamInfo, reqwest::Error> {
-        let response = self.request(format!("/team/{team_number}")).await?;
-
-        Ok(response.json().await?)
+        let response = self.request(format!("/team/{team_number}")).await;
+        match response {
+            Ok(_) => Ok(response.unwrap().json().await?),
+            Err(e) => Err(e)
+        }
     }
 
     pub async fn predict_match(

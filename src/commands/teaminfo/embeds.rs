@@ -50,10 +50,11 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
                                   vrc_data_analysis: &VRCDataAnalysis, components: bool) -> Result<(CreateEmbed, Option<Vec<CreateActionRow>>), String> {
     let trueskill = if *program != 1i64 {
         "Not supported for program".to_string()
-    } else if let Ok(data_analysis) = vrc_data_analysis.team_info(team_number).await {
-        data_analysis.trueskill_ranking.to_string()
     } else {
-        "No ranking".to_string()
+        match vrc_data_analysis.team_info(team_number).await {
+            Ok(team) => team.trueskill_ranking.to_string(),
+            Err(_) => "No trueskill".to_string()
+        }
     };
 
     return if let Ok(teams) = robotevents.find_teams(team_number, program).await {
