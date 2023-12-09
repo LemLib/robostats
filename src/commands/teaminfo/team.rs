@@ -1,4 +1,4 @@
-use serenity::all::{CommandDataOption, CommandDataOptionValue, CommandOptionType, CreateActionRow, CreateEmbed};
+use serenity::all::{CommandDataOptionValue, CommandOptionType, ComponentInteraction, CreateActionRow, CreateEmbed, EditInteractionResponse, EditMessage};
 use serenity::builder::{
     CreateCommand, CreateCommandOption, CreateInteractionResponse,
     CreateInteractionResponseMessage,
@@ -48,6 +48,31 @@ pub async fn response(
         Err(s) => CreateInteractionResponseMessage::new().content(s)
     };
     return CreateInteractionResponse::Message(message);
+}
+
+pub async fn edit(
+    _ctx: &Context,
+    page : &str,
+    team_number : &str,
+    program : &i64,
+    robotevents: &RobotEvents,
+    vrc_data_analysis: &VRCDataAnalysis,
+) -> EditMessage {
+    let result = match page {
+        "team_page" => create_general_embed(team_number, program, robotevents, vrc_data_analysis, false).await,
+        "awards_page" => create_awards_embed(team_number, program, robotevents, vrc_data_analysis, false).await,
+        _ => Err::<(CreateEmbed, Option<Vec<CreateActionRow>>), String>("Invalid page (How did we get here?)".to_string())
+    };
+
+    let message = match result {
+        Ok((a, _)) => {
+            let response = EditMessage::new().embed(a);
+            response
+        }
+        Err(s) => EditMessage::new().content(s)
+    };
+
+    return message;
 }
 
 pub fn register() -> CreateCommand {

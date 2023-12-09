@@ -1,2 +1,2 @@
 pub mod team;
-mod embeds;
+pub(crate) mod embeds;

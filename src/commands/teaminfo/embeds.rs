@@ -12,8 +12,7 @@ pub async fn create_interactions(seasons: Vec<Season>) -> Vec<CreateActionRow> {
                 options: vec![
                     CreateSelectMenuOption::new("Team Info", "team_page")
                         .emoji(ReactionType::Unicode("🗿".to_string()))
-                        .description("General information about the team")
-                        .default_selection(true),
+                        .description("General information about the team"),
                     CreateSelectMenuOption::new("Awards", "awards_page")
                         .emoji(ReactionType::Unicode("🏆".to_string()))
                         .description("Awards from events throughout the season"),
@@ -57,7 +56,7 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
         "No ranking".to_string()
     };
 
-    if let Ok(teams) = robotevents.find_teams(team_number, program).await {
+    return if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
             let mut message_components: Option<Vec<CreateActionRow>> = if let Ok(seasons) = robotevents.team_active_seasons(&team).await && components {
@@ -105,18 +104,18 @@ pub async fn create_general_embed(team_number: &str, program: &i64, robotevents:
                 }
             }
 
-            return Ok((embed, message_components));
+            Ok((embed, message_components))
         } else {
-            return Err("Failed to get information about team from RobotEvents".to_string());
+            Err("Failed to get information about team from RobotEvents".to_string())
         }
     } else {
-        return Err("Failed to get information from RobotEvents".to_string());
+        Err("Failed to get information from RobotEvents".to_string())
     }
 }
 
 pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: &RobotEvents,
                                  _: &VRCDataAnalysis, components: bool) -> Result<(CreateEmbed, Option<Vec<CreateActionRow>>), String> {
-    if let Ok(teams) = robotevents.find_teams(team_number, program).await {
+    return if let Ok(teams) = robotevents.find_teams(team_number, program).await {
         if let Some(team) = teams.iter().next() {
             let team = team.clone();
             let mut message_components: Option<Vec<CreateActionRow>> = if let Ok(seasons) = robotevents.team_active_seasons(&team).await && components {
@@ -144,11 +143,11 @@ pub async fn create_awards_embed(team_number: &str, program: &i64, robotevents: 
                     _ => Default::default(),
                 });
 
-            return Ok((embed, message_components));
+            Ok((embed, message_components))
         } else {
-            return Err("Failed to get information about team from RobotEvents".to_string());
+            Err("Failed to get information about team from RobotEvents".to_string())
         }
     } else {
-        return Err("Failed to get information from RobotEvents".to_string());
+        Err("Failed to get information from RobotEvents".to_string())
     }
 }

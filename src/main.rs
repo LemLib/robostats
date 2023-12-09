@@ -1,15 +1,19 @@
 #![feature(let_chains)]
 
+use std::any::Any;
 use api::robotevents::client::RobotEvents;
 use shuttle_secrets::SecretStore;
 
-use serenity::all::Command;
+use serenity::all::{Color, Colour, Command, ComponentInteractionDataKind, Integration};
+use serenity::all::ActionRowComponent::SelectMenu;
+use serenity::all::ComponentType::StringSelect;
 use serenity::async_trait;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
+use crate::commands::teaminfo::embeds::{create_awards_embed, create_general_embed};
 
 mod commands;
 mod api;
@@ -33,6 +37,7 @@ impl EventHandler for Bot {
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        println!("Interaction!");
         if let Interaction::Command(command) = interaction {
             let response = match command.data.name.as_str() {
                 "ping" => Some(commands::ping::response(&ctx, &command)),
@@ -51,12 +56,41 @@ impl EventHandler for Bot {
                     println!("Cannot respond to slash command: {error}");
                 }
             }
-        } else if let Interaction::Component(component) = interaction {
-            match component.data.custom_id.as_str() {
-                "team_page_response" => {}
-                "team_page_response" => {}
-                "team_page_response" => {}
-                "team_page_response" => {}
+        } else if let Interaction::Component(mut component) = interaction {
+            let data = match &component.data.kind {
+                ComponentInteractionDataKind::StringSelect {
+                    values,
+                } => &values[0],
+                _ => return
+            };
+            match data.as_str() {
+                "team_page" | "awards_page" | "stats_page" | "events_page" => {
+
+                    let embed = component.message.embeds.first().expect("").clone();
+
+                    let b = embed.title.expect("").clone();
+                    let mut split = b.split(" ");
+
+                    let team_num = split.next().expect("");
+                    let program = match split.next().expect("") {
+                        "(VRC" => 1i64,
+                        "(VEXU" => 4i64,
+                        "(VIQRC" => 41i64,
+                        "(TSA" => {
+                            match embed.colour.expect("").tuple() {
+                                (210,38,48) => 46i64,
+                                (0,119,200) => 47i64,
+                                _ => 0i64
+                            }
+                        },
+                        "(VAIRC" => 57i64,
+                        _ => 0i64
+                    };
+
+                    let a = component.message.edit(ctx.clone(), commands::teaminfo::team::edit(&ctx, data, team_num, &program, &self.robotevents, &self.vrc_data_analysis).await).await;
+                    component.create_response(ctx, CreateInteractionResponse::Acknowledge).await.expect("");
+                    println!("{}", a.is_ok());
+                }
                 _ => {}
             }
         }
