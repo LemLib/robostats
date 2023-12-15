@@ -1,16 +1,27 @@
+use std::time::Duration;
+
 use api::robotevents::client::RobotEvents;
+use api::vrc_data_analysis;
+use commands::wiki;
+use serenity::futures::StreamExt;
 use shuttle_secrets::SecretStore;
 
-use serenity::all::Command;
-use serenity::async_trait;
-use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
-use serenity::model::application::Interaction;
-use serenity::model::gateway::Ready;
-use serenity::prelude::*;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
+use crate::commands::{PingCommand, TeamCommand};
 
-mod commands;
+use serenity::{
+    prelude::*,
+    all::Command,
+    async_trait,
+    builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
+    model::{
+        application::Interaction,
+        gateway::Ready,
+    }
+};
+
 mod api;
+mod commands;
 
 struct Bot {
     robotevents: RobotEvents,
@@ -23,42 +34,80 @@ impl EventHandler for Bot {
         println!("{} is connected!", ready.user.name);
 
         // Register slash commands
-        Command::set_global_commands(&ctx.http, vec![
-            commands::ping::register(),
-            commands::team::register(),
-            commands::wiki::register()
-        ]).await.expect("Failed to register slash commands.");
+        Command::set_global_commands(
+            &ctx.http,
+            vec![
+                PingCommand::command(),
+                TeamCommand::command(),
+                commands::wiki::register(),
+            ],
+        )
+        .await
+        .expect("Failed to register slash commands.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::Command(command) = interaction {
-            let response = match command.data.name.as_str() {
-                "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis).await),
-                "wiki" => Some(commands::wiki::response(&ctx, &command)),
-                _ => {
-                    let message = CreateInteractionResponseMessage::new().content("not implemented :(");
+        match interaction {
+            Interaction::Command(command) => {
+                // Some commands store persistent data across component interactions, and thus require an
+                // instance to be created for them ahead of time.
+                let mut team_command = TeamCommand::default();
+                let ping_command = PingCommand::default();
 
-                    Some(CreateInteractionResponse::Message(message))
-                },
-            };
+                // Generate a response messaage for a given command type.
+                let response_message = match command.data.name.as_str() {
+                    "ping" => {
+                        ping_command.response()
+                    },
+                    "team" => {
+                        team_command.response(&ctx, &command, &self.robotevents).await
+                    },
+                    "wiki" => {
+                        wiki::response(&ctx, &command)
+                    },
+                    _ => {
+                        CreateInteractionResponseMessage::new().content("not implemented :(")
+                    }
+                };
+                
+                // Send initial response message to user's command.
+                if let Err(error) = command.create_response(&ctx.http, CreateInteractionResponse::Message(response_message)).await {
+                    println!("Failed to respond to {} command: {error}", command.data.name.as_str());
+                }
+                
+                // Wait for component interactions and handle them according to the respective command.
+                if let Ok(response) = command.get_response(&ctx.http).await {
+                    let mut interaction_stream =
+                        response.await_component_interaction(&ctx.shard).timeout(Duration::from_secs(60 * 3)).stream();
 
-            // Attempt to send response
-            if let Some(response) = response {
-                if let Err(error) = command.create_response(&ctx.http, response).await {
-                    println!("Cannot respond to slash command: {error}");
+                    while let Some(component_interaction) = interaction_stream.next().await {
+                        match command.data.name.as_str() {
+                            "team" => {
+                                component_interaction.create_response(
+                                    &ctx,
+                                    team_command.component_interaction_response(&ctx, &command, &component_interaction, &self.robotevents).await
+                                ).await.unwrap_or(());
+                            },
+                            _ => {}
+                        }
+                    }
                 }
             }
+            _ => {}
         }
     }
 }
 
 #[shuttle_runtime::main]
 async fn serenity(
-    #[shuttle_secrets::Secrets] secrets: SecretStore
+    #[shuttle_secrets::Secrets] secrets: SecretStore,
 ) -> shuttle_serenity::ShuttleSerenity {
-    let discord_token = secrets.get("DISCORD_TOKEN").expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
-    let robotevents_token = secrets.get("ROBOTEVENTS_TOKEN").expect("Couldn't find ROBOTEVENTS_TOKEN in SecretStore. Do you have a Secrets.toml?");
+    let discord_token = secrets
+        .get("DISCORD_TOKEN")
+        .expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
+    let robotevents_token = secrets
+        .get("ROBOTEVENTS_TOKEN")
+        .expect("Couldn't find ROBOTEVENTS_TOKEN in SecretStore. Do you have a Secrets.toml?");
 
     // Build client with token and default intents.
     let client = Client::builder(discord_token, GatewayIntents::empty())

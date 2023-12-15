@@ -5,7 +5,6 @@ use serenity::builder::{
     CreateCommand,
     CreateCommandOption,
     CreateEmbed,
-    CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
 use serenity::client::Context;
@@ -28,27 +27,23 @@ static ref PRIVILEGES : LinkedHashMap<&'static str, (&'static str, &'static str)
         };
 }
 
-pub fn response(_ctx: &Context, interaction: &CommandInteraction) -> CreateInteractionResponse {
+pub fn response(_ctx: &Context, interaction: &CommandInteraction) -> CreateInteractionResponseMessage {
     let name = if let CommandDataOptionValue::String(arg) = &interaction.data.options[0].value {
         Some(arg)
     } else {
         None
     };
     if name.is_none() {
-        let message = CreateInteractionResponseMessage::new().content("No argument provided");
-        return CreateInteractionResponse::Message(message);
+        return CreateInteractionResponseMessage::new().content("No argument provided");
     }
     let uname = name.unwrap().trim();
 
     if PRIVILEGES.contains_key(uname) {
-        let message = CreateInteractionResponseMessage::new().add_embed(
+        CreateInteractionResponseMessage::new().add_embed(
             CreateEmbed::new().title("Here you go").url(PRIVILEGES[uname].0)
-        );
-
-        CreateInteractionResponse::Message(message)
+        )
     } else {
-        let message = CreateInteractionResponseMessage::new().content("Couldn't find the article you were looking for");
-        CreateInteractionResponse::Message(message)
+        CreateInteractionResponseMessage::new().content("Couldn't find the article you were looking for")
     }
 }
 

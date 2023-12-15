@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use crate::api::vrc_data_analysis::schema::*;
 
+#[derive(Default, Debug, Clone)]
 pub struct VRCDataAnalysis {
     pub req_client: reqwest::Client,
 }

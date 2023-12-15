@@ -2,6 +2,7 @@ use crate::api::robotevents::schema::*;
 use reqwest::header::USER_AGENT;
 use std::time::Duration;
 
+#[derive(Default, Debug, Clone)]
 pub struct RobotEvents {
     pub bearer_token: String,
     pub req_client: reqwest::Client,
@@ -30,8 +31,14 @@ impl RobotEvents {
             .unwrap())
     }
 
-    pub async fn find_teams(&self, team_number: &str, program: &i64) -> Result<Vec<Team>, reqwest::Error> {
-        let response = self.request(format!("/teams?number%5B%5D={team_number}&program%5B%5D={program}")).await?;
+    pub async fn find_teams(&self, team_number: impl AsRef<str>, program_filter: Option<i32>) -> Result<Vec<Team>, reqwest::Error> {
+        let url = if let Some(filter) = program_filter {
+            format!("/teams?number%5B%5D={}&program%5B%5D={}", team_number.as_ref(), filter)
+        } else {
+            format!("/teams?number%5B%5D={}", team_number.as_ref())
+        };
+
+        let response = self.request(url).await?;
 
         Ok(response.json::<RobotEventsResponse<Team>>().await?.data)
     }
