@@ -95,7 +95,7 @@ pub struct IdInfo {
     // For some stupid reason, RobotEvents doesn't follow their own spec and uses the "abbr" key
     // rather than "code" in the case of seasons.
     #[serde(alias = "abbr")]
-    pub code: String,
+    pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -106,7 +106,7 @@ pub struct TeamAwardWinner {
 
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum AwardClassification {
     Champion,
     Finalist,
@@ -126,7 +126,7 @@ impl std::fmt::Display for AwardClassification {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename = "lowercase")]
+#[serde(rename_all = "lowercase")]
 pub enum AwardDesignation {
     Tournament,
     Division
@@ -139,17 +139,18 @@ impl std::fmt::Display for AwardDesignation {
             Self::Division => "Division",
         })
     }
-}
+}   
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Award {
     pub id: i32,
     pub event: IdInfo,
     pub order: i32,
     pub title: String,
     pub qualifications: Vec<String>,
-    pub designcation: AwardDesignation,
-    pub classification: AwardClassification,
+    pub designcation: Option<AwardDesignation>,
+    pub classification: Option<AwardClassification>,
     pub team_winners: Vec<TeamAwardWinner>,
     pub individual_winners: Vec<String>,
 }

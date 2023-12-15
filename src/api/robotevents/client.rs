@@ -61,7 +61,15 @@ impl RobotEvents {
         Ok(response.json::<PaginatedResponse<Season>>().await?.data)
     }
 
-    pub async fn team_awards(&self, team: &Team) -> Result<Vec<Award>, reqwest::Error> {
+    pub async fn team_awards(&self, team: &Team, season_filter: Option<i32>) -> Result<Vec<Award>, reqwest::Error> {
+        let url = if let Some(filter) = season_filter {
+            format!("/teams/{}/awards?season%5B%5D={}", team.id, filter)
+        } else {
+            format!("/teams/{}/awards", team.id)
+        };
 
+        let response = self.request(url).await?;
+
+        Ok(response.json::<PaginatedResponse<Award>>().await?.data)
     }
 }

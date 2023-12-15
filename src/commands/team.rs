@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType, ComponentInteraction,
     ComponentInteractionDataKind, ReactionType,
@@ -11,11 +13,10 @@ use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
-use crate::BotRequestError;
 use crate::api::robotevents::client::RobotEvents;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 
-use crate::api::robotevents::schema::{Season, IdInfo, Team};
+use crate::api::robotevents::schema::{Team, Season, Award, IdInfo};
 use crate::api::vrc_data_analysis::schema::TeamInfo;
 
 /// Represents a possible embed sent by the `/team`` command.
@@ -26,12 +27,30 @@ use crate::api::vrc_data_analysis::schema::TeamInfo;
 /// - The Events page displays a list of events that a team attended.
 ///  
 /// > Different embed "pages" may require different, separately-fetched pieces of data.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub enum EmbedPage {
-    Overview(Team),
-    Awards(Team),
-    Stats(Team, TeamInfo),
-    Events(Team),
+    #[default]
+    Overview,
+    Awards,
+    Stats,
+    Events,
+}
+
+#[derive(Default, Clone, Debug, PartialEq)]
+pub struct ParseEmbedPageError;
+
+impl FromStr for EmbedPage {
+    type Err = ParseEmbedPageError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "option_team_overview" => Ok(Self::Overview),
+            "option_team_awards" => Ok(Self::Awards),
+            "option_team_stats" => Ok(Self::Stats),
+            "option_team_events" => Ok(Self::Events),
+            _ => Err(ParseEmbedPageError),
+        }
+    }
 }
 
 impl EmbedPage {
@@ -39,61 +58,10 @@ impl EmbedPage {
     /// bot's messages.
     pub fn to_option_id(&self) -> &str {
         match self {
-            Self::Overview(_) => "option_team_overview",
-            Self::Awards(_) => "option_team_awards",
-            Self::Stats(_, _) => "option_team_stats",
-            Self::Events(_) => "option_team_events",
-        }
-    }
-
-    /// Generates an embed based on a page variant and provided data.
-    /// 
-    /// Returned as an instance of [`serenity::builder::CreateEmbed`].
-    pub fn embed(&self) -> CreateEmbed {
-        match self {
-            Self::Overview(team) => CreateEmbed::new()
-                .title(format!(
-                    "{} ({} {})",
-                    team.number, team.program.code, team.grade
-                ))
-                .url(format!(
-                    "https://www.robotevents.com/teams/{}/{}",
-                    team.program.code, team.number
-                ))
-                .description(&team.team_name)
-                .field("Organization", &team.organization, true)
-                .field(
-                    "Location",
-                    format!(
-                        "{}, {}, {}",
-                        team.location.city, team.location.region, team.location.country
-                    ),
-                    true,
-                )
-                // TODO: Should we hide this field entirely if no robot name is available?
-                .field(
-                    "Robot Name",
-                    if let Some(robot_name) = &team.robot_name {
-                        robot_name
-                    } else {
-                        "Unnamed"
-                    },
-                    true,
-                )
-                .field(
-                    "Registered",
-                    if team.registered { "Yes" } else { "No" },
-                    true,
-                )
-                // TODO: More collors for different RobotEvents programs.
-                .color(match team.program.code.as_ref() {
-                    "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                    "VIQRC" => Color::from_rgb(0, 119, 200),
-                    "VAIRC" => Color::from_rgb(91, 91, 91),
-                    _ => Default::default(),
-                }),
-            Self::Awards(_) => CreateEmbed::new().title("awards wow"),
-            _ => CreateEmbed::new().title("fallback"),
+            Self::Overview => "option_team_overview",
+            Self::Awards => "option_team_awards",
+            Self::Stats => "option_team_stats",
+            Self::Events => "option_team_events",
         }
     }
 }
@@ -110,10 +78,10 @@ pub struct TeamCommandRequestError;
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct TeamCommand {
     /// Current user-selected [`EmbedPage`].
-    current_page: Option<EmbedPage>,
+    current_page: EmbedPage,
 
-    /// Current user-selected season.
-    current_season: Option<Season>,
+    /// Current user-selected season ID.
+    current_season: Option<i32>,
     
     /// Team number string requested by the user on the initial command interaction.
     team_number: Option<String>,
@@ -134,10 +102,10 @@ pub struct TeamCommand {
     data_analysis: Option<TeamInfo>,
 
     /// List of awards the team has recieved.
-    awards: Option<()>,
+    awards: Option<Vec<Award>>,
 
     /// List of events the team has attended.
-    events: Option<()>,
+    events: Option<Vec<IdInfo>>,
 }
 
 impl TeamCommand {
@@ -159,7 +127,7 @@ impl TeamCommand {
             let mut option = CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false);
             
             for program in program_list.iter() {
-                option = option.add_int_choice(&program.code, program.id);
+                option = option.add_int_choice(&program.code.clone().unwrap_or("Unknown".to_string()), program.id);
             }
             
             command = command.add_option(option);
@@ -176,8 +144,8 @@ impl TeamCommand {
     /// the select menu with a new default selection each time the bot edits the embed.
     pub fn components(
         &self,
-        page_selection: &EmbedPage,
-        season_selection: &Season,
+        page_selection: EmbedPage,
+        season_selection_id: i32,
     ) -> Vec<CreateActionRow> {
         let page_selection_id = page_selection.to_option_id();
 
@@ -207,7 +175,11 @@ impl TeamCommand {
 
         // In the event that the team has no active seasons, we won't render the season menu at all.
         if let Some(active_seasons) = &self.active_seasons {
-            if !active_seasons.is_empty() {
+            // Also: Season selection does nothing on the overview page, since RobotEvents only returns the
+            // latest info about a team, so there's no point in showing it there either.
+            let is_overview_page = if let EmbedPage::Overview = page_selection { true } else { false };
+
+            if !active_seasons.is_empty() && !is_overview_page {
                 components.push(CreateActionRow::SelectMenu(CreateSelectMenu::new(
                     "team_season_select",
                     CreateSelectMenuKind::String {
@@ -220,7 +192,7 @@ impl TeamCommand {
                                 )
                                 // NOTE: We could compare seasons by PartialEq I guess, although it might be
                                 //       better to stick to IDs for now.
-                                .default_selection(season.id == season_selection.id)
+                                .default_selection(season.id == season_selection_id)
                                 .description(format!("{}-{}", season.years_start, season.years_end))
                             })
                             .collect(),
@@ -230,6 +202,92 @@ impl TeamCommand {
         }
 
         components
+    }
+
+        /// Generates an embed based on a page variant and provided data.
+    /// 
+    /// Returned as an instance of [`serenity::builder::CreateEmbed`].
+    pub async fn embed(&mut self, page: EmbedPage, robotevents: &RobotEvents) -> CreateEmbed {
+        let team = if let Ok(team) = self.find_robotevents_team(&robotevents).await {
+            team
+        } else {
+            return CreateEmbed::new()
+                .title("Failed to fetch RobotEvents team data.");
+        };
+
+        match page {
+            EmbedPage::Overview => {
+                CreateEmbed::new()
+                .title(format!(
+                    "{} ({}, {})",
+                    team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                ))
+                .url(format!(
+                    "https://www.robotevents.com/teams/{}/{}",
+                    team.program.code.clone().unwrap_or("VRC".to_string()), team.number
+                ))
+                .description(&team.team_name)
+                .field("Organization", &team.organization, false)
+                .field(
+                    "Location",
+                    format!(
+                        "{}, {}, {}",
+                        team.location.city, team.location.region, team.location.country
+                    ),
+                    false,
+                )
+                // TODO: Should we hide this field entirely if no robot name is available?
+                .field(
+                    "Robot Name",
+                    if let Some(robot_name) = &team.robot_name {
+                        robot_name
+                    } else {
+                        "Unnamed"
+                    },
+                    false,
+                )
+                .field(
+                    "Registered",
+                    if team.registered { "Yes" } else { "No" },
+                    false,
+                )
+                // TODO: More collors for different RobotEvents programs.
+                .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
+                    "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
+                    "VIQRC" => Color::from_rgb(0, 119, 200),
+                    "VAIRC" => Color::from_rgb(91, 91, 91),
+                    _ => Default::default(),
+                })
+            },
+            EmbedPage::Awards => {
+                let awards = if let Ok(awards) = self.find_team_awards(robotevents).await {
+                    awards
+                } else {
+                    return CreateEmbed::new()
+                        .title("Failed to fetch RobotEvents awards data.");
+                };
+
+                let mut embed = CreateEmbed::new()
+                    .title(format!(
+                        "{} ({}, {}) Awards",
+                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                    ))
+                    .description(format!("Total Awards: {}", awards.len()))
+                    .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
+                        "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
+                        "VIQRC" => Color::from_rgb(0, 119, 200),
+                        "VAIRC" => Color::from_rgb(91, 91, 91),
+                        _ => Default::default(),
+                    });
+
+                for award in awards {
+                    embed = embed.field(&award.event.name, &award.title, true);
+                }
+
+                embed
+            },
+            _ => CreateEmbed::new().title("fallback"),
+        }
     }
 
     /// Generate an initial response message to a command interaction.
@@ -272,24 +330,18 @@ impl TeamCommand {
 
             // Find a list of seasons that the fetched team was active in using a separate endpoint.
             self.active_seasons = if let Ok(seasons) = robotevents.team_active_seasons(&team).await {
+                self.current_season = Some(seasons[0].id);
                 Some(seasons)
             } else {
                 return CreateInteractionResponseMessage::new()
                     .content("Failed to get season information about team from RobotEvents.");
             };
 
-            // We start initially on the overview embed until the user selects another page.
-            self.current_page = Some(EmbedPage::Overview(team));
-
             // This check is technically redundant, since we just set `self.current_page` to Some(T), but
             // it keeps us from have to unnecessarily clone using other methods, so... ¯\_(ツ)_/¯
-            if let Some(page) = &self.current_page {
-                CreateInteractionResponseMessage::new()
-                    .embed(page.embed())
-                    .components(self.components(page, &self.active_seasons.clone().unwrap()[0]))
-            } else {
-                return CreateInteractionResponseMessage::new().content("Invalid embed page.");
-            }
+            CreateInteractionResponseMessage::new()
+                .embed(self.embed(self.current_page, &robotevents).await)
+                .components(self.components(self.current_page, self.current_season.unwrap()))
         } else {
             CreateInteractionResponseMessage::new().content("Failed to connect to RobotEvents.")
         }
@@ -330,6 +382,27 @@ impl TeamCommand {
             }
         }
     }
+    
+    pub async fn find_team_awards(
+        &mut self,
+        robotevents: &RobotEvents,
+    ) -> Result<Vec<Award>, TeamCommandRequestError> {
+        if let Some(team) = &self.team {
+            if let Some(awards) = self.awards.clone() {
+                Ok(awards)
+            } else {
+                // Fetch awards using RobotEvents HTTP client
+                if let Ok(fetched_awards) = robotevents.team_awards(team, self.current_season).await {
+                    self.awards = Some(fetched_awards.clone());
+                    Ok(fetched_awards)
+                } else {
+                    Err(TeamCommandRequestError)
+                }
+            }
+        } else {
+            Err(TeamCommandRequestError)
+        }
+    }
 
     /// Responds to an interaction with the `/team` command's message components (e.g. select menus).
     pub async fn component_interaction_response(
@@ -349,45 +422,58 @@ impl TeamCommand {
                 );
             };
 
-            let message_edit = match values.first().unwrap().as_ref() {
-                "option_team_overview" => {
-                    let page = EmbedPage::Overview(team);
+            let changed_value = values.first().unwrap().as_ref();
+
+            let message_edit = match changed_value {
+                // Page changed
+                "option_team_overview" | "option_team_awards" | "option_team_stats" | "option_team_events" => {
+                    self.current_page = changed_value.parse::<EmbedPage>().unwrap();
+
                     command_interaction
                         .edit_response(
                             &ctx,
                             EditInteractionResponse::new()
-                                .embed(page.embed())
+                                .embed(self.embed(self.current_page, &robotevents).await)
                                 .components(self.components(
-                                    &page,
-                                    &self.active_seasons.clone().unwrap()[0],
+                                    self.current_page,
+                                    self.current_season.unwrap(),
                                 )),
                         )
                         .await
-                }
-                "option_team_awards" => {
-                    let page = EmbedPage::Awards(team);
-                    command_interaction
-                        .edit_response(
-                            &ctx,
-                            EditInteractionResponse::new()
-                                .embed(page.embed())
-                                .components(self.components(
-                                    &page,
-                                    &self.active_seasons.clone().unwrap()[0],
-                                )),
-                        )
-                        .await
-                }
-                // "option_team_stats" => {
-                // },
-                // "option_team_events" => {
-                // },
+                },
                 _ => {
-                    return CreateInteractionResponse::Message(
-                        CreateInteractionResponseMessage::new()
-                            .content("Unknown interaction component. This shouldn't happen."),
-                    )
-                }
+                    // Handle Season Selection
+                    if changed_value.starts_with("option_season_") {
+                        let season_id = if let Ok(parsed_id) = changed_value.trim_start_matches("option_season_").parse::<i32>() {
+                            parsed_id
+                        } else {
+                            return CreateInteractionResponse::Message(
+                                CreateInteractionResponseMessage::new()
+                                    .content(format!("Failed to parse season ID for {}.", changed_value)),
+                            )
+                        };
+
+                        self.current_season = Some(season_id);
+                        self.awards = None; // Reset awards cache since the season has changed.
+
+                        command_interaction
+                            .edit_response(
+                                &ctx,
+                                EditInteractionResponse::new()
+                                    .embed(self.embed(self.current_page, &robotevents).await)
+                                    .components(self.components(
+                                        self.current_page,
+                                        season_id,
+                                    )),
+                            )
+                            .await
+                    } else {
+                        return CreateInteractionResponse::Message(
+                            CreateInteractionResponseMessage::new()
+                                .content("Unhandled component interaction. This shouldn't happen."),
+                        )
+                    }
+                },
             };
 
             if message_edit.is_ok() {
