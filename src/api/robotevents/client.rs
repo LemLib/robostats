@@ -40,24 +40,28 @@ impl RobotEvents {
 
         let response = self.request(url).await?;
 
-        Ok(response.json::<RobotEventsResponse<Team>>().await?.data)
+        Ok(response.json::<PaginatedResponse<Team>>().await?.data)
     }
 
     pub async fn all_seasons(&self) -> Result<Vec<Season>, reqwest::Error> {
         let response = self.request("/seasons").await?;
 
-        Ok(response.json::<RobotEventsResponse<Season>>().await?.data)
+        Ok(response.json::<PaginatedResponse<Season>>().await?.data)
     }
 
     pub async fn all_programs(&self) -> Result<Vec<IdInfo>, reqwest::Error> {
         let response = self.request("/programs").await?;
 
-        Ok(response.json::<RobotEventsResponse<IdInfo>>().await?.data)
+        Ok(response.json::<PaginatedResponse<IdInfo>>().await?.data)
     }
 
     pub async fn team_active_seasons(&self, team: &Team) -> Result<Vec<Season>, reqwest::Error> {
         let response = self.request(format!("/seasons?team%5B%5D={}", team.id)).await?;
 
-        Ok(response.json::<RobotEventsResponse<Season>>().await?.data)
+        Ok(response.json::<PaginatedResponse<Season>>().await?.data)
+    }
+
+    pub async fn team_awards(&self, team: &Team) -> Result<Vec<Award>, reqwest::Error> {
+
     }
 }

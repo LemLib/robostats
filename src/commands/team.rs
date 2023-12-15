@@ -237,7 +237,7 @@ impl TeamCommand {
     /// When the bot recieves a [`serenity::model::application::CommandInteraction`] as a result of a user
     /// sending a slash command, this message will be constructed and sent in response.
     /// 
-    /// The `/team` command as two primary user-provided arguments:
+    /// The `/team` command has two primary user-provided arguments:
     /// - A team number, which is eventually searched for on RobotEvents.
     /// - An optional team program filter, which specifies which program the bot should search for the
     ///   team in (e.g. VRC, VIQC, VAIC...).
