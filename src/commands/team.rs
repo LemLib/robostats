@@ -13,11 +13,14 @@ use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
-use crate::api::robotevents::client::RobotEvents;
-use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
-
-use crate::api::robotevents::schema::{Team, Season, Award, IdInfo};
-use crate::api::vrc_data_analysis::schema::TeamInfo;
+use crate::api::robotevents::{
+    RobotEvents,
+    schema::{Team, Season, Award, IdInfo}
+};
+use crate::api::vrc_data_analysis::{
+    VRCDataAnalysis,
+    schema::TeamInfo
+};
 
 /// Represents a possible embed sent by the `/team`` command.
 /// 

@@ -1,9 +1,12 @@
 use std::time::Duration;
 
-use api::{robotevents::{
-    client::RobotEvents,
-    schema::{IdInfo, Season}, self
-}, vrc_data_analysis};
+use api::{
+    robotevents::{
+        client::RobotEvents,
+        schema::{IdInfo, Season},
+    },
+    vrc_data_analysis
+};
 use api::vrc_data_analysis::client::VRCDataAnalysis;
 use commands::wiki;
 use serenity::futures::StreamExt;
