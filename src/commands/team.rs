@@ -11,10 +11,11 @@ use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
+use crate::BotRequestError;
 use crate::api::robotevents::client::RobotEvents;
 use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 
-use crate::api::robotevents::schema::{Season, Team};
+use crate::api::robotevents::schema::{Season, IdInfo, Team};
 use crate::api::vrc_data_analysis::schema::TeamInfo;
 
 /// Represents a possible embed sent by the `/team`` command.
@@ -108,15 +109,34 @@ pub struct TeamCommandRequestError;
 /// and cached.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct TeamCommand {
+    /// Current user-selected [`EmbedPage`].
     current_page: Option<EmbedPage>,
+
+    /// Current user-selected season.
     current_season: Option<Season>,
+    
+    /// Team number string requested by the user on the initial command interaction.
     team_number: Option<String>,
+
+    /// Team fetched from robotevents.
+    /// > This will be `None` if the request fails or hasn't been made yet.
     team: Option<Team>,
-    seasons: Option<Vec<Season>>,
+
+    /// List of active seasons the team has competed in.
+    /// > This will be `None` if the request fails or hasn't been made yet.
     active_seasons: Option<Vec<Season>>,
+
+    /// The "program" option selected by the user when making the initial command.
     program_id_filter: Option<i32>,
+
+    /// Data analysis info fetched about A VRC team.
+    /// This is `None` if the data hasn't been fetched yet or the team is in a program other than VRC.
     data_analysis: Option<TeamInfo>,
+
+    /// List of awards the team has recieved.
     awards: Option<()>,
+
+    /// List of events the team has attended.
     events: Option<()>,
 }
 
@@ -124,22 +144,28 @@ impl TeamCommand {
     /// Get a [`serenity::builder::CreateCommand`] instance associated with this command.
     /// 
     /// Contains metadata for the slash command that users will interact with through autocomplete.
-    pub fn command() -> CreateCommand {
-        CreateCommand::new("team")
+    pub fn command(program_list: Option<Vec<IdInfo>>) -> CreateCommand {
+        let mut command = CreateCommand::new("team")
             .description("Displays information about a team")
             .add_option(
                 CreateCommandOption::new(CommandOptionType::String, "team", "Team Number")
                     .required(true),
-            )
-            .add_option(
-                CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name")
-                    .required(false)
-                    // These integer values are the program ids
-                    // VRC is 1, VEXU is 4, and VEXIQ is 41
-                    .add_int_choice("VRC", 1)
-                    .add_int_choice("VEXU", 4)
-                    .add_int_choice("VEXIQ", 41),
-            )
+            );
+    
+        // Generate a list of RobotEvents programs for the user to filter teams from.
+        // This list was fetched on bot startup, and could possibly fail. In the event
+        // that it did fail, we'll simply not present this choice to the user.
+        if let Some(program_list) = program_list {
+            let mut option = CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false);
+            
+            for program in program_list.iter() {
+                option = option.add_int_choice(&program.name, program.id);
+            }
+            
+            command = command.add_option(option);
+        }
+
+        command
     }
 
     /// Get a list of message components associated with this command. Includes select menus,

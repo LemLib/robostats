@@ -1,12 +1,14 @@
 use std::time::Duration;
 
-use api::robotevents::client::RobotEvents;
-use api::vrc_data_analysis;
+use api::{robotevents::{
+    client::RobotEvents,
+    schema::{IdInfo, Season}, self
+}, vrc_data_analysis};
+use api::vrc_data_analysis::client::VRCDataAnalysis;
 use commands::wiki;
 use serenity::futures::StreamExt;
 use shuttle_secrets::SecretStore;
 
-use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 use crate::commands::{PingCommand, TeamCommand};
 
 use serenity::{
@@ -23,9 +25,14 @@ use serenity::{
 mod api;
 mod commands;
 
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct BotRequestError;
+
 struct Bot {
     robotevents: RobotEvents,
     vrc_data_analysis: VRCDataAnalysis,
+    season_list: Result<Vec<Season>, BotRequestError>,
+    program_list: Result<Vec<IdInfo>, BotRequestError>
 }
 
 #[async_trait]
@@ -38,7 +45,7 @@ impl EventHandler for Bot {
             &ctx.http,
             vec![
                 PingCommand::command(),
-                TeamCommand::command(),
+                TeamCommand::command(self.program_list.clone().ok()),
                 commands::wiki::register(),
             ],
         )
@@ -77,6 +84,7 @@ impl EventHandler for Bot {
                 
                 // Wait for component interactions and handle them according to the respective command.
                 if let Ok(response) = command.get_response(&ctx.http).await {
+                    // Each command gets a 3 minute event listener for interactions with components.
                     let mut interaction_stream =
                         response.await_component_interaction(&ctx.shard).timeout(Duration::from_secs(60 * 3)).stream();
 
@@ -109,11 +117,19 @@ async fn serenity(
         .get("ROBOTEVENTS_TOKEN")
         .expect("Couldn't find ROBOTEVENTS_TOKEN in SecretStore. Do you have a Secrets.toml?");
 
+    // HTTP clients for RobotEvents and vrc-data-analysis
+    let robotevents = RobotEvents::new(robotevents_token);
+    let vrc_data_analysis = VRCDataAnalysis::new();
+
     // Build client with token and default intents.
     let client = Client::builder(discord_token, GatewayIntents::empty())
         .event_handler(Bot {
-            robotevents: RobotEvents::new(robotevents_token),
-            vrc_data_analysis: VRCDataAnalysis::new(),
+            // Fetch a list of all seasons and programs from RobotEvents
+            // We store these as Result<T, E> internally so HTTP fails don't prevent the bot from starting.
+            program_list: robotevents.all_programs().await.map_err(|_| BotRequestError),
+            season_list: robotevents.all_seasons().await.map_err(|_| BotRequestError),
+            robotevents,
+            vrc_data_analysis,
         })
         .await
         .expect("Error creating client");
