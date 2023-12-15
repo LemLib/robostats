@@ -28,8 +28,7 @@ impl VRCDataAnalysis {
             .header(USER_AGENT, "RoboStats Discord Bot")
             .timeout(Duration::from_secs(10))
             .send()
-            .await
-            .unwrap())
+            .await?)
     }
 
     pub async fn team_info(&self, team_number: &str) -> Result<TeamInfo, reqwest::Error> {

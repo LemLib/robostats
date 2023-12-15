@@ -27,8 +27,7 @@ impl RobotEvents {
             .bearer_auth(&self.bearer_token)
             .timeout(Duration::from_secs(10))
             .send()
-            .await
-            .unwrap())
+            .await?)
     }
 
     pub async fn find_teams(&self, team_number: impl AsRef<str>, program_filter: Option<i32>) -> Result<Vec<Team>, reqwest::Error> {

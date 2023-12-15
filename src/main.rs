@@ -8,11 +8,15 @@ use api::{
     vrc_data_analysis
 };
 use api::vrc_data_analysis::client::VRCDataAnalysis;
-use commands::wiki;
 use serenity::futures::StreamExt;
 use shuttle_secrets::SecretStore;
 
-use crate::commands::{PingCommand, TeamCommand};
+use crate::commands::{
+    wiki,
+    PingCommand,
+    PredictCommand,
+    TeamCommand
+};
 
 use serenity::{
     prelude::*,
@@ -51,17 +55,11 @@ impl EventHandler for Bot {
             println!("Failed to fetch season list from RobotEvents. Command functionality may be limited as a result.");
         }
 
-        // Register slash commands
-        Command::set_global_commands(
-            &ctx.http,
-            vec![
-                PingCommand::command(),
-                TeamCommand::command(self.program_list.clone().ok()),
-                commands::wiki::register(),
-            ],
-        )
-        .await
-        .expect("Failed to register slash commands.");
+        // Needs to be done in separate calls because of discord request character limit for command registration.
+        Command::create_global_command(&ctx.http, commands::wiki::register()).await.expect("Failed to register wiki command.");
+        Command::create_global_command(&ctx.http, TeamCommand::command(self.program_list.clone().ok())).await.expect("Failed to register team command.");
+        Command::create_global_command(&ctx.http, PingCommand::command()).await.expect("Failed to register ping command.");
+        Command::create_global_command(&ctx.http, PredictCommand::command()).await.expect("Failed to register predict command.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -70,6 +68,7 @@ impl EventHandler for Bot {
                 // Some commands store persistent data across component interactions, and thus require an
                 // instance to be created for them ahead of time.
                 let mut team_command = TeamCommand::default();
+                let predict_command = PredictCommand::default();
                 let ping_command = PingCommand::default();
 
                 // Generate a response messaage for a given command type.
@@ -77,6 +76,9 @@ impl EventHandler for Bot {
                     "ping" => {
                         ping_command.response()
                     },
+                    "predict" => {
+                        predict_command.response(&ctx, &command, &self.vrc_data_analysis).await
+                    }
                     "team" => {
                         team_command.response(&ctx, &command, &self.robotevents).await
                     },
