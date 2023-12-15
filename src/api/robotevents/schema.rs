@@ -91,5 +91,9 @@ pub struct Coordinates {
 pub struct IdInfo {
     pub id: i32,
     pub name: String,
+
+    // For some stupid reason, RobotEvents doesn't follow their own spec and uses the "abbr" key
+    // rather than "code" in the case of seasons.
+    #[serde(alias = "abbr")]
     pub code: String,
 }

@@ -20,7 +20,7 @@ use serenity::{
         application::Interaction,
         gateway::Ready,
     }
-};
+};  
 
 mod api;
 mod commands;
@@ -39,6 +39,14 @@ struct Bot {
 impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+
+        // Log warnings in the event that initial list fetching failed on startup.
+        if let Err(_) = self.program_list {
+            println!("Failed to fetch program list from RobotEvents. Command functionality may be limited as a result.");
+        }
+        if let Err(_) = self.season_list {
+            println!("Failed to fetch season list from RobotEvents. Command functionality may be limited as a result.");
+        }
 
         // Register slash commands
         Command::set_global_commands(

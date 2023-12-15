@@ -159,7 +159,7 @@ impl TeamCommand {
             let mut option = CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false);
             
             for program in program_list.iter() {
-                option = option.add_int_choice(&program.name, program.id);
+                option = option.add_int_choice(&program.code, program.id);
             }
             
             command = command.add_option(option);
