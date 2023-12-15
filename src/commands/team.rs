@@ -100,10 +100,12 @@ impl EmbedPage {
 #[derive(Debug, Clone)]
 pub struct TeamCommandRequestError;
 
-/// Handler for the "/team" command
+/// Handler for the "/team" command.
+/// The team command serves the purpose of displaying information and statistics about a singular
+/// RobotEvents team.
 /// 
-/// Data stored in this struct is heavily wrapped in Option<T> due to being lazily
-/// fetched via HTTP and cached.
+/// Data stored in this struct is heavily wrapped in Option<T> due to being lazily fetched via HTT
+/// and cached.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct TeamCommand {
     current_page: Option<EmbedPage>,
@@ -209,7 +211,7 @@ impl TeamCommand {
     /// When the bot recieves a [`serenity::model::application::CommandInteraction`] as a result of a user
     /// sending a slash command, this message will be constructed and sent in response.
     /// 
-    /// The `/team`` command as two primary user-provided arguments:
+    /// The `/team` command as two primary user-provided arguments:
     /// - A team number, which is eventually searched for on RobotEvents.
     /// - An optional team program filter, which specifies which program the bot should search for the
     ///   team in (e.g. VRC, VIQC, VAIC...).
