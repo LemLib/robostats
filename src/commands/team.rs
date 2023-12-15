@@ -413,67 +413,51 @@ impl TeamCommand {
         robotevents: &RobotEvents,
     ) -> CreateInteractionResponse {
         if let ComponentInteractionDataKind::StringSelect { values } = &component_interaction.data.kind {
-            let team = if let Ok(team) = self.find_robotevents_team(robotevents).await {
-                team
+            let changed_value: &str = values.first().unwrap().as_ref();
+
+            let message_edit = if changed_value.starts_with("option_page_") { // User changed page
+                self.current_page = changed_value.parse::<EmbedPage>().unwrap();
+
+                command_interaction
+                    .edit_response(
+                        &ctx,
+                        EditInteractionResponse::new()
+                            .embed(self.embed(self.current_page, &robotevents).await)
+                            .components(self.components(
+                                self.current_page,
+                                self.current_season.unwrap(),
+                            )),
+                    )
+                    .await
+            } else if changed_value.starts_with("option_season_") { // User changed season
+                let season_id = if let Ok(parsed_id) = changed_value.trim_start_matches("option_season_").parse::<i32>() {
+                    parsed_id
+                } else {
+                    return CreateInteractionResponse::Message(
+                        CreateInteractionResponseMessage::new()
+                            .content(format!("Failed to parse season ID for {}.", changed_value)),
+                    )
+                };
+
+                self.current_season = Some(season_id);
+                self.awards = None; // Reset awards cache since the season has changed.
+
+                command_interaction
+                    .edit_response(
+                        &ctx,
+                        EditInteractionResponse::new()
+                            .embed(self.embed(self.current_page, &robotevents).await)
+                            .components(self.components(
+                                self.current_page,
+                                season_id,
+                            )),
+                    )
+                    .await
             } else {
                 return CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
-                        .content("Failed fetch RobotEvents team data."),
-                );
-            };
-
-            let changed_value = values.first().unwrap().as_ref();
-
-            let message_edit = match changed_value {
-                // Page changed
-                "option_team_overview" | "option_team_awards" | "option_team_stats" | "option_team_events" => {
-                    self.current_page = changed_value.parse::<EmbedPage>().unwrap();
-
-                    command_interaction
-                        .edit_response(
-                            &ctx,
-                            EditInteractionResponse::new()
-                                .embed(self.embed(self.current_page, &robotevents).await)
-                                .components(self.components(
-                                    self.current_page,
-                                    self.current_season.unwrap(),
-                                )),
-                        )
-                        .await
-                },
-                _ => {
-                    // Handle Season Selection
-                    if changed_value.starts_with("option_season_") {
-                        let season_id = if let Ok(parsed_id) = changed_value.trim_start_matches("option_season_").parse::<i32>() {
-                            parsed_id
-                        } else {
-                            return CreateInteractionResponse::Message(
-                                CreateInteractionResponseMessage::new()
-                                    .content(format!("Failed to parse season ID for {}.", changed_value)),
-                            )
-                        };
-
-                        self.current_season = Some(season_id);
-                        self.awards = None; // Reset awards cache since the season has changed.
-
-                        command_interaction
-                            .edit_response(
-                                &ctx,
-                                EditInteractionResponse::new()
-                                    .embed(self.embed(self.current_page, &robotevents).await)
-                                    .components(self.components(
-                                        self.current_page,
-                                        season_id,
-                                    )),
-                            )
-                            .await
-                    } else {
-                        return CreateInteractionResponse::Message(
-                            CreateInteractionResponseMessage::new()
-                                .content("Unhandled component interaction. This shouldn't happen."),
-                        )
-                    }
-                },
+                        .content("Unhandled component interaction. This shouldn't happen."),
+                )
             };
 
             if message_edit.is_ok() {
@@ -484,8 +468,9 @@ impl TeamCommand {
                 )
             }
         } else {
-            CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new().content("Failed to edit embed."),
+            return CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new()
+                    .content("Unhandled component interaction. This shouldn't happen."),
             )
         }
     }
