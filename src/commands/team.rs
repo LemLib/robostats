@@ -17,6 +17,14 @@ use crate::api::vrc_data_analysis::client::VRCDataAnalysis;
 use crate::api::robotevents::schema::{Season, Team};
 use crate::api::vrc_data_analysis::schema::TeamInfo;
 
+/// Represents a possible embed sent by the `/team`` command.
+/// 
+/// - The Overview embed displays general information about a team.
+/// - The Awards embed displays information about a team's RobotEvents awards.
+/// - The Stats page displays team statistics and rankings.
+/// - The Events page displays a list of events that a team attended.
+///  
+/// > Different embed "pages" may require different, separately-fetched pieces of data.
 #[derive(Clone, Debug, PartialEq)]
 pub enum EmbedPage {
     Overview(Team),
@@ -26,6 +34,8 @@ pub enum EmbedPage {
 }
 
 impl EmbedPage {
+    /// Converts a variant of [`Self`] to a string matching the select option IDs used by the
+    /// bot's messages.
     pub fn to_option_id(&self) -> &str {
         match self {
             Self::Overview(_) => "option_team_overview",
@@ -35,6 +45,9 @@ impl EmbedPage {
         }
     }
 
+    /// Generates an embed based on a page variant and provided data.
+    /// 
+    /// Returned as an instance of [`serenity::builder::CreateEmbed`].
     pub fn embed(&self) -> CreateEmbed {
         match self {
             Self::Overview(team) => CreateEmbed::new()
@@ -56,6 +69,7 @@ impl EmbedPage {
                     ),
                     true,
                 )
+                // TODO: Should we hide this field entirely if no robot name is available?
                 .field(
                     "Robot Name",
                     if let Some(robot_name) = &team.robot_name {
@@ -70,6 +84,7 @@ impl EmbedPage {
                     if team.registered { "Yes" } else { "No" },
                     true,
                 )
+                // TODO: More collors for different RobotEvents programs.
                 .color(match team.program.code.as_ref() {
                     "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                     "VIQRC" => Color::from_rgb(0, 119, 200),
@@ -85,6 +100,10 @@ impl EmbedPage {
 #[derive(Debug, Clone)]
 pub struct TeamCommandRequestError;
 
+/// Handler for the "/team" command
+/// 
+/// Data stored in this struct is heavily wrapped in Option<T> due to being lazily
+/// fetched via HTTP and cached.
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct TeamCommand {
     current_page: Option<EmbedPage>,
@@ -100,6 +119,9 @@ pub struct TeamCommand {
 }
 
 impl TeamCommand {
+    /// Get a [`serenity::builder::CreateCommand`] instance associated with this command.
+    /// 
+    /// Contains metadata for the slash command that users will interact with through autocomplete.
     pub fn command() -> CreateCommand {
         CreateCommand::new("team")
             .description("Displays information about a team")
@@ -110,14 +132,20 @@ impl TeamCommand {
             .add_option(
                 CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name")
                     .required(false)
-                    //these integer values are the program ids
-                    //VRC is 1, VEXU is 4, and VEXIQ is 41
+                    // These integer values are the program ids
+                    // VRC is 1, VEXU is 4, and VEXIQ is 41
                     .add_int_choice("VRC", 1)
                     .add_int_choice("VEXU", 4)
                     .add_int_choice("VEXIQ", 41),
             )
     }
 
+    /// Get a list of message components associated with this command. Includes select menus,
+    /// radio options, buttons, etc...
+    /// 
+    /// This isn't hardcoded into [`Self::response`] due to Discord unfortunately wiping the
+    /// user's selection choice when a message is edited. As a result, we need to reconstruct
+    /// the select menu with a new default selection each time the bot edits the embed.
     pub fn components(
         &self,
         page_selection: &EmbedPage,
@@ -149,6 +177,7 @@ impl TeamCommand {
             },
         ))];
 
+        // In the event that the team has no active seasons, we won't render the season menu at all.
         if let Some(active_seasons) = &self.active_seasons {
             if !active_seasons.is_empty() {
                 components.push(CreateActionRow::SelectMenu(CreateSelectMenu::new(
@@ -161,7 +190,9 @@ impl TeamCommand {
                                     &season.name,
                                     format!("option_season_{}", season.id),
                                 )
-                                .default_selection(season == season_selection)
+                                // NOTE: We could compare seasons by PartialEq I guess, although it might be
+                                //       better to stick to IDs for now.
+                                .default_selection(season.id == season_selection.id)
                                 .description(format!("{}-{}", season.years_start, season.years_end))
                             })
                             .collect(),
@@ -173,12 +204,24 @@ impl TeamCommand {
         components
     }
 
+    /// Generate an initial response message to a command interaction.
+    /// 
+    /// When the bot recieves a [`serenity::model::application::CommandInteraction`] as a result of a user
+    /// sending a slash command, this message will be constructed and sent in response.
+    /// 
+    /// The `/team`` command as two primary user-provided arguments:
+    /// - A team number, which is eventually searched for on RobotEvents.
+    /// - An optional team program filter, which specifies which program the bot should search for the
+    ///   team in (e.g. VRC, VIQC, VAIC...).
+    /// 
+    /// > By default, this response will start on the team overview [`EmbedPage`].
     pub async fn response(
         &mut self,
         _ctx: &Context,
         interaction: &CommandInteraction,
         robotevents: &RobotEvents,
     ) -> CreateInteractionResponseMessage {
+        // Set the initially requested team number from command arguments.
         self.team_number =
             if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
                 Some(number.to_string())
@@ -186,16 +229,20 @@ impl TeamCommand {
                 return CreateInteractionResponseMessage::new().content("Invalid team number.");
             };
 
+        // Set program filter if used.
         self.program_id_filter = if interaction.data.options.len() < 2 {
             None
         } else if let CommandDataOptionValue::Integer(id) = &interaction.data.options[1].value {
-            i32::try_from(*id).ok()
+            i32::try_from(*id).ok() // This conversion from i64 to i32 shouldn't ever realistically fail...
         } else {
             return CreateInteractionResponseMessage::new()
                 .content("Invalid RobotEvents program value.");
         };
 
+        // Fetch RobotEvents team data over HTTP.
         if let Ok(team) = self.find_robotevents_team(&robotevents).await {
+
+            // Find a list of seasons that the fetched team was active in using a separate endpoint.
             self.active_seasons = if let Ok(seasons) = robotevents.team_active_seasons(&team).await {
                 Some(seasons)
             } else {
@@ -203,8 +250,11 @@ impl TeamCommand {
                     .content("Failed to get season information about team from RobotEvents.");
             };
 
+            // We start initially on the overview embed until the user selects another page.
             self.current_page = Some(EmbedPage::Overview(team));
 
+            // This check is technically redundant, since we just set `self.current_page` to Some(T), but
+            // it keeps us from have to unnecessarily clone using other methods, so... ¯\_(ツ)_/¯
             if let Some(page) = &self.current_page {
                 CreateInteractionResponseMessage::new()
                     .embed(page.embed())
@@ -218,24 +268,31 @@ impl TeamCommand {
     }
 
     /// Returns the RobotEvents team data associated with this instance of [`Self`].
+    /// 
     /// If `self.team` happens to be `None`, this function will attempt to fetch the required information
     /// from the RobotEvents API, but otherwise return the cached result.
     pub async fn find_robotevents_team(
         &mut self,
         robotevents: &RobotEvents,
     ) -> Result<Team, TeamCommandRequestError> {
+        // Ensure tha a team number has been provided by a user.
         let team_number = if let Some(team_number) = &self.team_number {
             team_number
         } else {
+            // This can only be `None` if the command has not been responded to at all, or the bot somehow
+            // updates an invalid response which shouldn't realistically happen.
             return Err(TeamCommandRequestError);
         };
 
+        // If we've already fetched the team data once (such as in the case of page changes with message edits),
+        // use the data already stored in [`Self`].
         if let Some(team) = self.team.clone() {
             Ok(team)
         } else {
+            // Fetch team using RobotEvents HTTP client
             if let Ok(teams) = robotevents.find_teams(team_number, self.program_id_filter).await {
-                if let Some(team) = teams.iter().next().to_owned() {
-                    self.team = Some(team.clone());
+                if let Some(team) = teams.iter().next() {
+                    self.team = Some(team.clone()); // Cache value for later use. 
                     Ok(team.clone())
                 } else {
                     Err(TeamCommandRequestError)
@@ -246,6 +303,7 @@ impl TeamCommand {
         }
     }
 
+    /// Responds to an interaction with the `/team` command's message components (e.g. select menus).
     pub async fn component_interaction_response(
         &mut self,
         ctx: &Context,
