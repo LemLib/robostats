@@ -8,7 +8,8 @@ pub struct RobotEvents {
     pub req_client: reqwest::Client,
 }
 
-pub const API_BASE: &str = "https://www.robotevents.com/api/v2";
+pub const V2_API_BASE: &str = "https://www.robotevents.com/api/v2";
+pub const V1_API_BASE: &str = "https://www.robotevents.com/api/v1";
 
 impl RobotEvents {
     pub fn new(bearer_token: impl AsRef<str>) -> Self {
@@ -18,10 +19,14 @@ impl RobotEvents {
         }
     }
 
+    /// Make a request to a [RobotEvents API v2](https://www.robotevents.com/api/v2) endpoint.
+    /// 
+    /// Requires a bearer authentication token to be provided for requests to work. This can
+    /// be obtained from RobotEvents by creating an account and requesting one.
     async fn request(&self, endpoint: impl AsRef<str>) -> Result<reqwest::Response, reqwest::Error> {
         Ok(self
             .req_client
-            .get(format!("{API_BASE}{}", endpoint.as_ref()))
+            .get(format!("{V2_API_BASE}{}", endpoint.as_ref()))
             .header("accept-language", "en")
             .header(USER_AGENT, "RoboStats Discord Bot")
             .bearer_auth(&self.bearer_token)
@@ -29,6 +34,18 @@ impl RobotEvents {
             .send()
             .await
             .unwrap())
+    }
+
+    /// Make a request to a RobotEvents API v1 endpoint.
+    async fn request_api_v1(&self, endpoint: impl AsRef<str>) -> Result<reqwest::Response, reqwest::Error> {
+        Ok(self
+            .req_client
+            .get(format!("{V1_API_BASE}{}", endpoint.as_ref()))
+            .header("accept-language", "en")
+            .header(USER_AGENT, "RoboStats Discord Bot")
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await?)
     }
 
     pub async fn find_teams(&self, team_number: impl AsRef<str>, program_filter: Option<i32>) -> Result<Vec<Team>, reqwest::Error> {
@@ -71,5 +88,17 @@ impl RobotEvents {
         let response = self.request(url).await?;
 
         Ok(response.json::<PaginatedResponse<Award>>().await?.data)
+    }
+
+    pub async fn team_skills(&self, team: &Team, season_filter: Option<i32>) -> Result<Vec<Skill>, reqwest::Error> {
+        let url = if let Some(filter) = season_filter {
+            format!("/teams/{}/skills?season%5B%5D={}", team.id, filter)
+        } else {
+            format!("/teams/{}/skills", team.id)
+        };
+
+        let response = self.request(url).await?;
+
+        Ok(response.json::<PaginatedResponse<Skill>>().await?.data)
     }
 }
