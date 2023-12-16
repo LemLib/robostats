@@ -32,8 +32,7 @@ impl RobotEvents {
             .bearer_auth(&self.bearer_token)
             .timeout(Duration::from_secs(10))
             .send()
-            .await
-            .unwrap())
+            .await?)
     }
 
     /// Make a request to a RobotEvents API v1 endpoint.

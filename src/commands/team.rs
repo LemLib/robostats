@@ -193,8 +193,6 @@ impl TeamCommand {
                                     &season.name,
                                     format!("option_season_{}", season.id),
                                 )
-                                // NOTE: We could compare seasons by PartialEq I guess, although it might be
-                                //       better to stick to IDs for now.
                                 .default_selection(season.id == season_selection_id)
                                 .description(format!("{}-{}", season.years_start, season.years_end))
                             })
@@ -207,7 +205,7 @@ impl TeamCommand {
         components
     }
 
-        /// Generates an embed based on a page variant and provided data.
+    /// Generates an embed based on a page variant and provided data.
     /// 
     /// Returned as an instance of [`serenity::builder::CreateEmbed`].
     pub async fn embed(&mut self, page: EmbedPage, robotevents: &RobotEvents) -> CreateEmbed {
@@ -218,49 +216,51 @@ impl TeamCommand {
                 .title("Failed to fetch RobotEvents team data.");
         };
 
+        let mut embed = CreateEmbed::new()
+            // TODO: More collors for different RobotEvents programs.
+            .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
+                "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
+                "VIQRC" => Color::from_rgb(0, 119, 200),
+                "VAIRC" => Color::from_rgb(91, 91, 91),
+                _ => Default::default(),
+            });
+
         match page {
             EmbedPage::Overview => {
-                CreateEmbed::new()
-                .title(format!(
-                    "{} ({}, {})",
-                    team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
-                ))
-                .url(format!(
-                    "https://www.robotevents.com/teams/{}/{}",
-                    team.program.code.clone().unwrap_or("VRC".to_string()), team.number
-                ))
-                .description(&team.team_name)
-                .field("Organization", &team.organization, false)
-                .field(
-                    "Location",
-                    format!(
-                        "{}, {}, {}",
-                        team.location.city, team.location.region, team.location.country
-                    ),
-                    false,
-                )
-                // TODO: Should we hide this field entirely if no robot name is available?
-                .field(
-                    "Robot Name",
-                    if let Some(robot_name) = &team.robot_name {
-                        robot_name
-                    } else {
-                        "Unnamed"
-                    },
-                    false,
-                )
-                .field(
-                    "Registered",
-                    if team.registered { "Yes" } else { "No" },
-                    false,
-                )
-                // TODO: More collors for different RobotEvents programs.
-                .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
-                    "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                    "VIQRC" => Color::from_rgb(0, 119, 200),
-                    "VAIRC" => Color::from_rgb(91, 91, 91),
-                    _ => Default::default(),
-                })
+                embed = embed
+                    .title(format!(
+                        "{} ({}, {})",
+                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                    ))
+                    .url(format!(
+                        "https://www.robotevents.com/teams/{}/{}",
+                        team.program.code.clone().unwrap_or("VRC".to_string()), team.number
+                    ))
+                    .description(&team.team_name)
+                    .field("Organization", &team.organization, false)
+                    .field(
+                        "Location",
+                        format!(
+                            "{}, {}, {}",
+                            team.location.city, team.location.region, team.location.country
+                        ),
+                        false,
+                    )
+                    // TODO: Should we hide this field entirely if no robot name is available?
+                    .field(
+                        "Robot Name",
+                        if let Some(robot_name) = &team.robot_name {
+                            robot_name
+                        } else {
+                            "Unnamed"
+                        },
+                        false,
+                    )
+                    .field(
+                        "Registered",
+                        if team.registered { "Yes" } else { "No" },
+                        false,
+                    );
             },
             EmbedPage::Awards => {
                 let awards = if let Ok(awards) = self.find_team_awards(robotevents).await {
@@ -270,27 +270,25 @@ impl TeamCommand {
                         .title("Failed to fetch RobotEvents awards data.");
                 };
 
-                let mut embed = CreateEmbed::new()
+                embed = embed
                     .title(format!(
                         "{} ({}, {}) Awards",
                         team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
                     ))
-                    .description(format!("Total Awards: {}", awards.len()))
-                    .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
-                        "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                        "VIQRC" => Color::from_rgb(0, 119, 200),
-                        "VAIRC" => Color::from_rgb(91, 91, 91),
-                        _ => Default::default(),
-                    });
+                    .description(format!("Total Awards: {}", awards.len()));
 
                 for award in awards {
                     embed = embed.field(&award.event.name, &award.title, true);
                 }
-
-                embed
             },
-            _ => CreateEmbed::new().title("fallback"),
+            _ => {
+                embed = embed
+                    .title("Unknown Page")
+                    .description("How did you even get here? 🤔");
+            }
         }
+
+        embed
     }
 
     /// Generate an initial response message to a command interaction.
@@ -358,7 +356,7 @@ impl TeamCommand {
         &mut self,
         robotevents: &RobotEvents,
     ) -> Result<Team, TeamCommandRequestError> {
-        // Ensure tha a team number has been provided by a user.
+        // Ensure that a team number has been provided by a user.
         let team_number = if let Some(team_number) = &self.team_number {
             team_number
         } else {

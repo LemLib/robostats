@@ -1,24 +1,16 @@
 use serenity::all::{
-    CommandDataOptionValue, CommandOptionType, ComponentInteraction,
-    ComponentInteractionDataKind, ReactionType,
+    CommandDataOptionValue, CommandOptionType
 };
 use serenity::builder::{
-    CreateActionRow, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind,
-    CreateSelectMenuOption, EditInteractionResponse, CreateEmbedAuthor, CreateEmbedFooter,
+    CreateCommand, CreateCommandOption, CreateEmbed,
+    CreateInteractionResponseMessage, CreateEmbedAuthor,
+    CreateEmbedFooter,
 };
 use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
-use crate::api::robotevents::{
-    RobotEvents,
-    schema::{Team, Season, Award, IdInfo}
-};
-use crate::api::vrc_data_analysis::{
-    VRCDataAnalysis,
-    schema::TeamInfo
-};
+use crate::api::vrc_data_analysis::VRCDataAnalysis;
 
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct PredictCommand;
