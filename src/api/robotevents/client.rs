@@ -90,7 +90,7 @@ impl RobotEvents {
         Ok(response.json::<PaginatedResponse<Award>>().await?.data)
     }
 
-    pub async fn team_skills(&self, team: &Team, season_filter: Option<i32>) -> Result<Vec<Skill>, reqwest::Error> {
+    pub async fn team_skills_runs(&self, team: &Team, season_filter: Option<i32>) -> Result<Vec<Skill>, reqwest::Error> {
         let url = if let Some(filter) = season_filter {
             format!("/teams/{}/skills?season%5B%5D={}", team.id, filter)
         } else {
