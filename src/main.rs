@@ -5,9 +5,9 @@ use api::{
         client::RobotEvents,
         schema::{IdInfo, Season},
     },
-    vrc_data_analysis
+    vrc_data_analysis::VRCDataAnalysis
 };
-use api::vrc_data_analysis::client::VRCDataAnalysis;
+
 use serenity::futures::StreamExt;
 use shuttle_secrets::SecretStore;
 

@@ -416,7 +416,7 @@ impl TeamCommand {
         if let ComponentInteractionDataKind::StringSelect { values } = &component_interaction.data.kind {
             let changed_value: &str = values.first().unwrap().as_ref();
 
-            let message_edit = if changed_value.starts_with("option_page_") { // User changed page
+            let message_edit = if changed_value.starts_with("option_team_") { // User changed page
                 self.current_page = changed_value.parse::<EmbedPage>().unwrap();
 
                 command_interaction
