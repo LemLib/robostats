@@ -1,33 +1,31 @@
 use std::time::Duration;
 
-use api::{
-    robotevents::{
-        client::RobotEvents,
-        schema::{IdInfo, Season},
-    },
-    vrc_data_analysis::VRCDataAnalysis
-};
 
-use serenity::futures::StreamExt;
 use shuttle_secrets::SecretStore;
-
-use crate::commands::{
-    wiki,
-    PingCommand,
-    PredictCommand,
-    TeamCommand
-};
-
 use serenity::{
     prelude::*,
-    all::Command,
     async_trait,
+    all::Command,
+    futures::StreamExt,
     builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
     model::{
         application::Interaction,
         gateway::Ready,
     }
-};  
+};
+
+use commands::{
+    wiki,
+    PingCommand,
+    PredictCommand,
+    TeamCommand
+};
+use robotevents::{
+    RobotEvents,
+    schema::{PaginatedResponse, IdInfo, Season},
+    filters::SeasonsFilter,
+};
+use crate::api::vrc_data_analysis::VRCDataAnalysis;
 
 mod api;
 mod commands;
@@ -38,8 +36,8 @@ pub struct BotRequestError;
 struct Bot {
     robotevents: RobotEvents,
     vrc_data_analysis: VRCDataAnalysis,
-    season_list: Result<Vec<Season>, BotRequestError>,
-    program_list: Result<Vec<IdInfo>, BotRequestError>
+    season_list: Result<PaginatedResponse<Season>, BotRequestError>,
+    program_list: Result<PaginatedResponse<IdInfo>, BotRequestError>
 }
 
 #[async_trait]
@@ -139,8 +137,8 @@ async fn serenity(
         .event_handler(Bot {
             // Fetch a list of all seasons and programs from RobotEvents
             // We store these as Result<T, E> internally so HTTP fails don't prevent the bot from starting.
-            program_list: robotevents.all_programs().await.map_err(|_| BotRequestError),
-            season_list: robotevents.all_seasons().await.map_err(|_| BotRequestError),
+            program_list: robotevents.programs().await.map_err(|_| BotRequestError),
+            season_list: robotevents.seasons(SeasonsFilter::default()).await.map_err(|_| BotRequestError),
             robotevents,
             vrc_data_analysis,
         })

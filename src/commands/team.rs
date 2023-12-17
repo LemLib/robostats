@@ -13,9 +13,10 @@ use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
 use serenity::model::Color;
 
-use crate::api::robotevents::{
+use robotevents::{
     RobotEvents,
-    schema::{Team, Season, Award, IdInfo}
+    filters::{TeamsFilter, SeasonsFilter, TeamAwardsFilter},
+    schema::{PaginatedResponse, Team, Season, Award, IdInfo}
 };
 use crate::api::vrc_data_analysis::{
     VRCDataAnalysis,
@@ -115,7 +116,7 @@ impl TeamCommand {
     /// Get a [`serenity::builder::CreateCommand`] instance associated with this command.
     /// 
     /// Contains metadata for the slash command that users will interact with through autocomplete.
-    pub fn command(program_list: Option<Vec<IdInfo>>) -> CreateCommand {
+    pub fn command(program_list: Option<PaginatedResponse<IdInfo>>) -> CreateCommand {
         let mut command = CreateCommand::new("team")
             .description("Displays information about a team")
             .add_option(
@@ -129,7 +130,7 @@ impl TeamCommand {
         if let Some(program_list) = program_list {
             let mut option = CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false);
             
-            for program in program_list.iter() {
+            for program in program_list.data.iter() {
                 option = option.add_int_choice(&program.code.clone().unwrap_or("Unknown".to_string()), program.id);
             }
             
@@ -330,9 +331,9 @@ impl TeamCommand {
         if let Ok(team) = self.find_robotevents_team(&robotevents).await {
 
             // Find a list of seasons that the fetched team was active in using a separate endpoint.
-            self.active_seasons = if let Ok(seasons) = robotevents.team_active_seasons(&team).await {
-                self.current_season = Some(seasons[0].id);
-                Some(seasons)
+            self.active_seasons = if let Ok(seasons) = robotevents.seasons(SeasonsFilter::new().team(team.id)).await {
+                self.current_season = Some(seasons.data[0].id);
+                Some(seasons.data)
             } else {
                 return CreateInteractionResponseMessage::new()
                     .content("Failed to get season information about team from RobotEvents.");
@@ -371,8 +372,13 @@ impl TeamCommand {
             Ok(team)
         } else {
             // Fetch team using RobotEvents HTTP client
-            if let Ok(teams) = robotevents.find_teams(team_number, self.program_id_filter).await {
-                if let Some(team) = teams.iter().next() {
+            let mut filter = TeamsFilter::new().number(team_number.to_string());
+            if let Some(program_id_filter) = self.program_id_filter {
+                filter = filter.program(program_id_filter);
+            }
+
+            if let Ok(teams) = robotevents.teams(filter).await {
+                if let Some(team) = teams.data.iter().next() {
                     self.team = Some(team.clone()); // Cache value for later use. 
                     Ok(team.clone())
                 } else {
@@ -393,9 +399,9 @@ impl TeamCommand {
                 Ok(awards)
             } else {
                 // Fetch awards using RobotEvents HTTP client
-                if let Ok(fetched_awards) = robotevents.team_awards(team, self.current_season).await {
-                    self.awards = Some(fetched_awards.clone());
-                    Ok(fetched_awards)
+                if let Ok(fetched_awards) = team.awards(&robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
+                    self.awards = Some(fetched_awards.clone().data);
+                    Ok(fetched_awards.data)
                 } else {
                     Err(TeamCommandRequestError)
                 }
