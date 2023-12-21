@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use hashlink::linked_hash_map::LinkedHashMap;
 use lazy_static::lazy_static;
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType
@@ -14,8 +14,8 @@ use serenity::model::application::CommandInteraction;
 pub struct WikiCommand;
 
 lazy_static! {
-    static ref PRIVILEGES : HashMap<&'static str, (&'static str, &'static str)> = {
-        let mut map = HashMap::new();
+    static ref PRIVILEGES : LinkedHashMap<&'static str, (&'static str, &'static str)> = {
+        let mut map = LinkedHashMap::new();
 
         map.insert("main", ("https://wiki.purduesigbots.com/", "Sigbots: Main Page"));
         map.insert("building", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts", "Sigbots: Useful Building Techniques"));

@@ -15,3 +15,4 @@ shuttle-serenity = { version = "0.34.1", default-features = false, features = ["
 lazy_static = "1.4.0"
 serde = "1.0.193"
 reqwest = { version = "0.11.22", features = ["json"] }
+hashlink = "0.8.4"
