@@ -47,19 +47,14 @@ impl WikiCommand {
         interaction: &CommandInteraction
     ) -> CreateInteractionResponseMessage {
         let name = if let CommandDataOptionValue::String(arg) = &interaction.data.options[0].value {
-            Some(arg)
+            arg.trim()
         } else {
-            None
-        };
-        if name.is_none() {
             return CreateInteractionResponseMessage::new().content("No argument provided");
         }
     
-        let uname = name.unwrap().trim();
-    
-        if PRIVILEGES.contains_key(uname) {
+        if PRIVILEGES.contains_key(name) {
             CreateInteractionResponseMessage::new().add_embed(
-                CreateEmbed::new().title("Here you go").url(PRIVILEGES[uname].0)
+                CreateEmbed::new().title("Here you go").url(PRIVILEGES[name].0)
             )
         } else {
             CreateInteractionResponseMessage::new().content("Couldn't find the article you were looking for")
