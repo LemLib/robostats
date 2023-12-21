@@ -300,7 +300,7 @@ impl TeamCommand {
                     .description(format!("Total Events: {}", events.len()));
 
                 for event in events {
-                    embed = embed.field(event.name, format!("[RobotEvents](https://robotevents.com/{})", event.sku), true);
+                    embed = embed.field(event.name, format!("[View More](https://robotevents.com/{})", event.sku), true);
                 }
             },
             _ => {
