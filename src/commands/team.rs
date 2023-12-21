@@ -51,10 +51,10 @@ impl FromStr for EmbedPage {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "option_team_overview" => Ok(Self::Overview),
-            "option_team_awards" => Ok(Self::Awards),
-            "option_team_stats" => Ok(Self::Stats),
-            "option_team_events" => Ok(Self::Events),
+            "overview" => Ok(Self::Overview),
+            "awards" => Ok(Self::Awards),
+            "stats" => Ok(Self::Stats),
+            "events" => Ok(Self::Events),
             _ => Err(ParseEmbedPageError),
         }
     }
@@ -120,27 +120,30 @@ impl TeamCommand {
     /// 
     /// Contains metadata for the slash command that users will interact with through autocomplete.
     pub fn command(program_list: Option<PaginatedResponse<IdInfo>>) -> CreateCommand {
-        let mut command = CreateCommand::new("team")
-            .description("Displays information about a team")
-            .add_option(
-                CreateCommandOption::new(CommandOptionType::String, "team", "Team Number")
-                    .required(true),
-            );
-    
-        // Generate a list of RobotEvents programs for the user to filter teams from.
-        // This list was fetched on bot startup, and could possibly fail. In the event
-        // that it did fail, we'll simply not present this choice to the user.
+        let team_opt = CreateCommandOption::new(CommandOptionType::String, "number", "Team Number").required(true);
+        let mut program_opt = CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false);
         if let Some(program_list) = program_list {
-            let mut option = CreateCommandOption::new(CommandOptionType::Integer, "program", "Program Name").required(false);
-            
             for program in program_list.data.iter() {
-                option = option.add_int_choice(&program.name, program.id);
+                program_opt = program_opt.add_int_choice(&program.name, program.id);
             }
-            
-            command = command.add_option(option);
         }
 
-        command
+        CreateCommand::new("team")
+            .description("Displays information about a team")
+            .set_options(vec![
+                CreateCommandOption::new(CommandOptionType::SubCommand, "overview", "General information about a team")
+                    .add_sub_option(team_opt.clone())
+                    .add_sub_option(program_opt.clone()),
+                CreateCommandOption::new(CommandOptionType::SubCommand, "awards", "Awards a team has earned for a season")
+                    .add_sub_option(team_opt.clone())
+                    .add_sub_option(program_opt.clone()),
+                CreateCommandOption::new(CommandOptionType::SubCommand, "stats", "Team statistics & rankings")
+                    .add_sub_option(team_opt.clone())
+                    .add_sub_option(program_opt.clone()),
+                CreateCommandOption::new(CommandOptionType::SubCommand, "events", "Event attendance from a team")
+                    .add_sub_option(team_opt.clone())
+                    .add_sub_option(program_opt.clone()),
+            ])
     }
 
     /// Get a list of message components associated with this command. Includes select menus,
@@ -390,18 +393,30 @@ impl TeamCommand {
         interaction: &CommandInteraction,
         robotevents: &RobotEvents,
     ) -> CreateInteractionResponseMessage {
+        let options = if let CommandDataOptionValue::SubCommand(cmd) = &interaction.data.options[0].value {
+            cmd
+        }  else {
+            return CreateInteractionResponseMessage::new().content("Invalid subcommand option.");
+        };
+
+        self.current_page = if let Ok(parsed_page) = interaction.data.options[0].name.parse::<EmbedPage>() {
+            parsed_page
+        } else {
+            return CreateInteractionResponseMessage::new().content("Failed to parse subcommand type.");
+        };
+
         // Set the initially requested team number from command arguments.
         self.team_number =
-            if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
+            if let CommandDataOptionValue::String(number) = &options[0].value {
                 Some(number.to_string())
             } else {
                 return CreateInteractionResponseMessage::new().content("Invalid team number.");
             };
 
         // Set program filter if used.
-        self.program_id_filter = if interaction.data.options.len() < 2 {
+        self.program_id_filter = if options.len() < 2 {
             None
-        } else if let CommandDataOptionValue::Integer(id) = &interaction.data.options[1].value {
+        } else if let CommandDataOptionValue::Integer(id) = &options[1].value {
             i32::try_from(*id).ok() // This conversion from i64 to i32 shouldn't ever realistically fail...
         } else {
             return CreateInteractionResponseMessage::new()
@@ -481,7 +496,7 @@ impl TeamCommand {
             let changed_value: &str = values.first().unwrap().as_ref();
 
             let message_edit = if changed_value.starts_with("option_team_") { // User changed page
-                self.current_page = changed_value.parse::<EmbedPage>().unwrap();
+                self.current_page = changed_value.trim_start_matches("option_team_").parse::<EmbedPage>().unwrap();
 
                 command_interaction
                     .edit_response(
