@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use robotevents::filters::TeamEventsFilter;
+use robotevents::schema::Event;
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType, ComponentInteraction,
     ComponentInteractionDataKind, ReactionType,
@@ -109,7 +111,7 @@ pub struct TeamCommand {
     awards: Option<Vec<Award>>,
 
     /// List of events the team has attended.
-    events: Option<Vec<IdInfo>>,
+    events: Option<Vec<Event>>,
 }
 
 impl TeamCommand {
@@ -279,7 +281,26 @@ impl TeamCommand {
                     .description(format!("Total Awards: {}", awards.len()));
 
                 for award in awards {
-                    embed = embed.field(&award.event.name, &award.title, true);
+                    embed = embed.field(award.event.name, award.title, true);
+                }
+            },
+            EmbedPage::Events => {
+                let events = if let Ok(events) = self.find_team_events(robotevents).await {
+                    events
+                } else {
+                    return CreateEmbed::new()
+                        .title("Failed to fetch RobotEvents events data.");
+                };
+
+                embed = embed
+                    .title(format!(
+                        "{} ({}, {}) Events",
+                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                    ))
+                    .description(format!("Total Events: {}", events.len()));
+
+                for event in events {
+                    embed = embed.field(event.name, format!("[RobotEvents](https://robotevents.com/{})", event.sku), true);
                 }
             },
             _ => {
@@ -399,9 +420,30 @@ impl TeamCommand {
                 Ok(awards)
             } else {
                 // Fetch awards using RobotEvents HTTP client
-                if let Ok(fetched_awards) = team.awards(&robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
+                if let Ok(fetched_awards) = team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
                     self.awards = Some(fetched_awards.clone().data);
                     Ok(fetched_awards.data)
+                } else {
+                    Err(TeamCommandRequestError)
+                }
+            }
+        } else {
+            Err(TeamCommandRequestError)
+        }
+    }
+
+    pub async fn find_team_events(
+        &mut self,
+        robotevents: &RobotEvents,
+    ) -> Result<Vec<Event>, TeamCommandRequestError> {
+        if let Some(team) = &self.team {
+            if let Some(events) = self.events.clone() {
+                Ok(events)
+            } else {
+                // Fetch events using RobotEvents HTTP client
+                if let Ok(fetched_events) = team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
+                    self.events = Some(fetched_events.clone().data);
+                    Ok(fetched_events.data)
                 } else {
                     Err(TeamCommandRequestError)
                 }
@@ -448,6 +490,7 @@ impl TeamCommand {
 
                 self.current_season = Some(season_id);
                 self.awards = None; // Reset awards cache since the season has changed.
+                self.events = None; // Reset awards cache since the season has changed.
 
                 command_interaction
                     .edit_response(
