@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use robotevents::filters::TeamEventsFilter;
@@ -220,7 +221,7 @@ impl TeamCommand {
         };
 
         let mut embed = CreateEmbed::new()
-            // TODO: More collors for different RobotEvents programs.
+            // TODO: More colors for different RobotEvents programs.
             .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
                 "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                 "VIQRC" => Color::from_rgb(0, 119, 200),
@@ -266,12 +267,27 @@ impl TeamCommand {
                     );
             },
             EmbedPage::Awards => {
-                let awards = if let Ok(awards) = self.find_team_awards(robotevents).await {
-                    awards
+                let awards = if let Some(awards) = &self.awards {
+                    awards.clone()
                 } else {
-                    return CreateEmbed::new()
-                        .title("Failed to fetch RobotEvents awards data.");
+                    if let Some(team) = &self.team {
+                        if let Ok(awards) = team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
+                            self.awards = Some(awards.clone());
+                            awards
+                        } else {
+                            return CreateEmbed::new()
+                                .title("Failed to fetch RobotEvents awards data.");
+                        }
+                    } else {
+                        return CreateEmbed::new()
+                            .title("Invalid team data.");
+                    }
                 };
+
+                let mut categorized_awards: HashMap<i32, Vec<Award>> = HashMap::new();
+                for award in awards.data {
+                    categorized_awards.entry(award.event.id).or_default().push(award);
+                }
 
                 embed = embed
                     .title(format!(
@@ -293,16 +309,34 @@ impl TeamCommand {
                         embed = embed.description("No awards found.");
                     }
 
-                for award in awards.data {
-                    embed = embed.field(award.event.name, award.title, true);
+                for awards in categorized_awards.values() {
+                    embed = embed.field(
+                        &awards[0].event.name,
+                        awards
+                            .iter()
+                            .map(|a| "- ".to_string() + &a.title)
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        true
+                    );
                 }
             },
             EmbedPage::Events => {
-                let events = if let Ok(events) = self.find_team_events(robotevents).await {
-                    events
+                let events = if let Some(events) = &self.events {
+                    events.clone()
                 } else {
-                    return CreateEmbed::new()
-                        .title("Failed to fetch RobotEvents events data.");
+                    if let Some(team) = &self.team {
+                        if let Ok(events) = team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
+                            self.events = Some(events.clone());
+                            events
+                        } else {
+                            return CreateEmbed::new()
+                                .title("Failed to fetch RobotEvents events data.");
+                        }
+                    } else {
+                        return CreateEmbed::new()
+                            .title("Invalid team data.");
+                    }
                 };
 
                 embed = embed
@@ -326,7 +360,7 @@ impl TeamCommand {
                 }
 
                 for event in events.data {
-                    embed = embed.field(event.name, format!("[View More](https://robotevents.com/{})", event.sku), true);
+                    embed = embed.field(event.name, format!("[View More](https://robotevents.com/robot-competitions/{})", event.sku), true);
                 }
             },
             _ => {
@@ -416,69 +450,25 @@ impl TeamCommand {
         // If we've already fetched the team data once (such as in the case of page changes with message edits),
         // use the data already stored in [`Self`].
         if let Some(team) = self.team.clone() {
-            Ok(team)
-        } else {
-            // Fetch team using RobotEvents HTTP client
-            let mut filter = TeamsFilter::new().number(team_number.to_string());
-            if let Some(program_id_filter) = self.program_id_filter {
-                filter = filter.program(program_id_filter);
-            }
+            return Ok(team);
+        }
 
-            if let Ok(teams) = robotevents.teams(filter).await {
-                if let Some(team) = teams.data.iter().next() {
-                    self.team = Some(team.clone()); // Cache value for later use. 
-                    Ok(team.clone())
-                } else {
-                    Err(TeamCommandRequestError)
-                }
-            } else {
-                Err(TeamCommandRequestError)
+        // Fetch team using RobotEvents HTTP client
+        let mut filter = TeamsFilter::new().number(team_number.to_string());
+        if let Some(program_id_filter) = self.program_id_filter {
+            filter = filter.program(program_id_filter);
+        }
+
+        if let Ok(teams) = robotevents.teams(filter).await {
+            if let Some(team) = teams.data.iter().next() {
+                self.team = Some(team.clone()); // Cache value for later use. 
+                return Ok(team.clone());
             }
         }
+
+        Err(TeamCommandRequestError)
     }
     
-    pub async fn find_team_awards(
-        &mut self,
-        robotevents: &RobotEvents,
-    ) -> Result<PaginatedResponse<Award>, TeamCommandRequestError> {
-        if let Some(team) = &self.team {
-            if let Some(awards) = self.awards.clone() {
-                Ok(awards)
-            } else {
-                // Fetch awards using RobotEvents HTTP client
-                if let Ok(fetched_awards) = team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
-                    self.awards = Some(fetched_awards.clone());
-                    Ok(fetched_awards)
-                } else {
-                    Err(TeamCommandRequestError)
-                }
-            }
-        } else {
-            Err(TeamCommandRequestError)
-        }
-    }
-
-    pub async fn find_team_events(
-        &mut self,
-        robotevents: &RobotEvents,
-    ) -> Result<PaginatedResponse<Event>, TeamCommandRequestError> {
-        if let Some(team) = &self.team {
-            if let Some(events) = self.events.clone() {
-                Ok(events)
-            } else {
-                // Fetch events using RobotEvents HTTP client
-                if let Ok(fetched_events) = team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
-                    self.events = Some(fetched_events.clone());
-                    Ok(fetched_events)
-                } else {
-                    Err(TeamCommandRequestError)
-                }
-            }
-        } else {
-            Err(TeamCommandRequestError)
-        }
-    }
-
     /// Responds to an interaction with the `/team` command's message components (e.g. select menus).
     pub async fn component_interaction_response(
         &mut self,
