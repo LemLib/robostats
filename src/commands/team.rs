@@ -516,7 +516,7 @@ impl TeamCommand {
 
                 self.current_season = Some(season_id);
                 self.awards = None; // Reset awards cache since the season has changed.
-                self.events = None; // Reset awards cache since the season has changed.
+                self.events = None; // Reset events cache since the season has changed.
 
                 command_interaction
                     .edit_response(

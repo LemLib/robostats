@@ -18,7 +18,8 @@ use commands::{
     wiki,
     PingCommand,
     PredictCommand,
-    TeamCommand
+    TeamCommand,
+    WikiCommand,
 };
 use robotevents::{
     RobotEvents,
@@ -54,7 +55,7 @@ impl EventHandler for Bot {
         }
 
         // Needs to be done in separate calls because of discord request character limit for command registration.
-        Command::create_global_command(&ctx.http, commands::wiki::register()).await.expect("Failed to register wiki command.");
+        Command::create_global_command(&ctx.http, WikiCommand::command()).await.expect("Failed to register wiki command.");
         Command::create_global_command(&ctx.http, TeamCommand::command(self.program_list.clone().ok())).await.expect("Failed to register team command.");
         Command::create_global_command(&ctx.http, PingCommand::command()).await.expect("Failed to register ping command.");
         Command::create_global_command(&ctx.http, PredictCommand::command()).await.expect("Failed to register predict command.");
@@ -68,6 +69,7 @@ impl EventHandler for Bot {
                 let mut team_command = TeamCommand::default();
                 let predict_command = PredictCommand::default();
                 let ping_command = PingCommand::default();
+                let wiki_command = WikiCommand::default();
 
                 // Generate a response messaage for a given command type.
                 let response_message = match command.data.name.as_str() {
@@ -81,7 +83,7 @@ impl EventHandler for Bot {
                         team_command.response(&ctx, &command, &self.robotevents).await
                     },
                     "wiki" => {
-                        wiki::response(&ctx, &command)
+                        wiki_command.response(&ctx, &command)
                     },
                     _ => {
                         CreateInteractionResponseMessage::new().content("not implemented :(")
