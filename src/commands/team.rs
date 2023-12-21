@@ -362,7 +362,15 @@ impl TeamCommand {
                 }
 
                 for event in events.data {
-                    embed = embed.field(event.name, format!("[View More](https://robotevents.com/robot-competitions/{})", event.sku), true);
+                    embed = embed.field(
+                        event.name,
+                        format!(
+                            "[View More](https://robotevents.com/robot-competitions/{}/{})",
+                            event.program.code.unwrap_or("VRC".to_string()),
+                            event.sku
+                        ),
+                        true
+                    );
                 }
             },
             _ => {
