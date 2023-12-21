@@ -1712,9 +1712,9 @@ dependencies = [
 
 [[package]]
 name = "robotevents"
-version = "0.2.6"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "998e19e5406f7e4dd09ba8dfb13099f99dd8bd2f4f87285a26dba468ff9f6380"
+checksum = "52aa7981feecb4422e658f50d49de81ecbdd69b16cacf196f259d7d1cdfd67f0"
 dependencies = [
  "itertools 0.12.0",
  "reqwest",

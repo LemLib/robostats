@@ -9,7 +9,7 @@ use serenity::all::{
 use serenity::builder::{
     CreateActionRow, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
     CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind,
-    CreateSelectMenuOption, EditInteractionResponse,
+    CreateSelectMenuOption, EditInteractionResponse, CreateEmbedFooter,
 };
 use serenity::client::Context;
 use serenity::model::application::CommandInteraction;
@@ -108,10 +108,10 @@ pub struct TeamCommand {
     data_analysis: Option<TeamInfo>,
 
     /// List of awards the team has recieved.
-    awards: Option<Vec<Award>>,
+    awards: Option<PaginatedResponse<Award>>,
 
     /// List of events the team has attended.
-    events: Option<Vec<Event>>,
+    events: Option<PaginatedResponse<Event>>,
 }
 
 impl TeamCommand {
@@ -277,10 +277,23 @@ impl TeamCommand {
                     .title(format!(
                         "{} ({}, {}) Awards",
                         team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
-                    ))
-                    .description(format!("Total Awards: {}", awards.len()));
+                    ));
 
-                for award in awards {
+                    if let Some(to) = awards.meta.to {
+                        embed = embed.footer(
+                            CreateEmbedFooter::new(format!(
+                                "Page {} of {} ({}/{} Results)",
+                                awards.meta.current_page,
+                                awards.meta.last_page,
+                                to,
+                                awards.meta.total
+                            ))
+                        );
+                    } else {
+                        embed = embed.description("No awards found.");
+                    }
+
+                for award in awards.data {
                     embed = embed.field(award.event.name, award.title, true);
                 }
             },
@@ -296,10 +309,23 @@ impl TeamCommand {
                     .title(format!(
                         "{} ({}, {}) Events",
                         team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
-                    ))
-                    .description(format!("Total Events: {}", events.len()));
+                    ));
 
-                for event in events {
+                if let Some(to) = events.meta.to {
+                    embed = embed.footer(
+                        CreateEmbedFooter::new(format!(
+                            "Page {} of {} ({}/{} Results)",
+                            events.meta.current_page,
+                            events.meta.last_page,
+                            to,
+                            events.meta.total
+                        ))
+                    );
+                } else {
+                    embed = embed.description("No events found.");
+                }
+
+                for event in events.data {
                     embed = embed.field(event.name, format!("[View More](https://robotevents.com/{})", event.sku), true);
                 }
             },
@@ -414,15 +440,15 @@ impl TeamCommand {
     pub async fn find_team_awards(
         &mut self,
         robotevents: &RobotEvents,
-    ) -> Result<Vec<Award>, TeamCommandRequestError> {
+    ) -> Result<PaginatedResponse<Award>, TeamCommandRequestError> {
         if let Some(team) = &self.team {
             if let Some(awards) = self.awards.clone() {
                 Ok(awards)
             } else {
                 // Fetch awards using RobotEvents HTTP client
                 if let Ok(fetched_awards) = team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
-                    self.awards = Some(fetched_awards.clone().data);
-                    Ok(fetched_awards.data)
+                    self.awards = Some(fetched_awards.clone());
+                    Ok(fetched_awards)
                 } else {
                     Err(TeamCommandRequestError)
                 }
@@ -435,15 +461,15 @@ impl TeamCommand {
     pub async fn find_team_events(
         &mut self,
         robotevents: &RobotEvents,
-    ) -> Result<Vec<Event>, TeamCommandRequestError> {
+    ) -> Result<PaginatedResponse<Event>, TeamCommandRequestError> {
         if let Some(team) = &self.team {
             if let Some(events) = self.events.clone() {
                 Ok(events)
             } else {
                 // Fetch events using RobotEvents HTTP client
                 if let Ok(fetched_events) = team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
-                    self.events = Some(fetched_events.clone().data);
-                    Ok(fetched_events.data)
+                    self.events = Some(fetched_events.clone());
+                    Ok(fetched_events)
                 } else {
                     Err(TeamCommandRequestError)
                 }
