@@ -50,7 +50,7 @@ impl WikiCommand {
             arg.trim()
         } else {
             return CreateInteractionResponseMessage::new().content("No argument provided");
-        }
+        };
     
         if PRIVILEGES.contains_key(name) {
             CreateInteractionResponseMessage::new().add_embed(
