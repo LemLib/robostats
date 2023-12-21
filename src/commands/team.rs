@@ -392,7 +392,7 @@ impl TeamCommand {
                 .embed(self.embed(self.current_page, &robotevents).await)
                 .components(self.components(self.current_page, self.current_season.unwrap()))
         } else {
-            CreateInteractionResponseMessage::new().content("Failed to connect to RobotEvents.")
+            CreateInteractionResponseMessage::new().content("Failed to find a RobotEvents team with this number.")
         }
     }
 
