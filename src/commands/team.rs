@@ -60,17 +60,15 @@ impl FromStr for EmbedPage {
     }
 }
 
-impl EmbedPage {
-    /// Converts a variant of [`Self`] to a string matching the select option IDs used by the
-    /// bot's messages.
-    pub fn to_option_id(&self) -> &str {
-        match self {
-            Self::Overview => "option_team_overview",
-            Self::Awards => "option_team_awards",
-            Self::Stats => "option_team_stats",
-            Self::Events => "option_team_events",
-        }
-    }
+impl std::fmt::Display for EmbedPage {
+     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Overview => "overview",
+            Self::Awards => "awards",
+            Self::Stats => "stats",
+            Self::Events => "events",
+        })
+     }
 }
 
 #[derive(Debug, Clone)]
@@ -157,7 +155,8 @@ impl TeamCommand {
         page_selection: EmbedPage,
         season_selection_id: i32,
     ) -> Vec<CreateActionRow> {
-        let page_selection_id = page_selection.to_option_id();
+        let mut page_selection_id = page_selection.to_string();
+        page_selection_id.insert_str(0, "option_team_");
 
         let mut components = vec![CreateActionRow::SelectMenu(CreateSelectMenu::new(
             "team_page_select",
