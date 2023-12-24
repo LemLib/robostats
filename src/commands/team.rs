@@ -50,8 +50,8 @@ impl FromStr for EmbedPage {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "overview" => Ok(Self::Overview),
-            "awards" => Ok(Self::Awards),
             "stats" => Ok(Self::Stats),
+            "awards" => Ok(Self::Awards),
             "events" => Ok(Self::Events),
             _ => Err(ParseEmbedPageError),
         }
@@ -62,8 +62,8 @@ impl std::fmt::Display for EmbedPage {
      fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.write_str(match self {
             Self::Overview => "overview",
-            Self::Awards => "awards",
             Self::Stats => "stats",
+            Self::Awards => "awards",
             Self::Events => "events",
         })
      }
@@ -132,10 +132,10 @@ impl TeamCommand {
                 CreateCommandOption::new(CommandOptionType::SubCommand, "overview", "General information about a team")
                     .add_sub_option(team_opt.clone())
                     .add_sub_option(program_opt.clone()),
-                CreateCommandOption::new(CommandOptionType::SubCommand, "awards", "Awards a team has earned for a season")
+                CreateCommandOption::new(CommandOptionType::SubCommand, "stats", "Team statistics & rankings")
                     .add_sub_option(team_opt.clone())
                     .add_sub_option(program_opt.clone()),
-                CreateCommandOption::new(CommandOptionType::SubCommand, "stats", "Team statistics & rankings")
+                CreateCommandOption::new(CommandOptionType::SubCommand, "awards", "Awards a team has earned for a season")
                     .add_sub_option(team_opt.clone())
                     .add_sub_option(program_opt.clone()),
                 CreateCommandOption::new(CommandOptionType::SubCommand, "events", "Event attendance from a team")
@@ -166,14 +166,14 @@ impl TeamCommand {
                         .emoji(ReactionType::Unicode("🗿".to_string()))
                         .description("General information about the team")
                         .default_selection(page_selection_id == "option_team_overview"),
-                    CreateSelectMenuOption::new("Awards", "option_team_awards")
-                        .emoji(ReactionType::Unicode("🏆".to_string()))
-                        .description("Awards from events throughout the season")
-                        .default_selection(page_selection_id == "option_team_awards"),
                     CreateSelectMenuOption::new("Stats", "option_team_stats")
                         .emoji(ReactionType::Unicode("📊".to_string()))
                         .description("Team statistics & rankings")
                         .default_selection(page_selection_id == "option_team_stats"),
+                    CreateSelectMenuOption::new("Awards", "option_team_awards")
+                        .emoji(ReactionType::Unicode("🏆".to_string()))
+                        .description("Awards from events throughout the season")
+                        .default_selection(page_selection_id == "option_team_awards"),
                     CreateSelectMenuOption::new("Events", "option_team_events")
                         .emoji(ReactionType::Unicode("🗓️".to_string()))
                         .description("Event attendance from this team")
@@ -225,6 +225,10 @@ impl TeamCommand {
         };
 
         let mut embed = CreateEmbed::new()
+            .url(format!(
+                "https://www.robotevents.com/teams/{}/{}",
+                team.program.code.clone().unwrap_or("VRC".to_string()), team.number
+            ))
             // TODO: More colors for different RobotEvents programs.
             .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
                 "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
@@ -239,10 +243,6 @@ impl TeamCommand {
                     .title(format!(
                         "{} ({}, {})",
                         team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
-                    ))
-                    .url(format!(
-                        "https://www.robotevents.com/teams/{}/{}",
-                        team.program.code.clone().unwrap_or("VRC".to_string()), team.number
                     ))
                     .description(&team.team_name)
                     .field("Organization", &team.organization, false)
@@ -644,6 +644,8 @@ impl TeamCommand {
                 };
 
                 self.current_season = Some(season_id);
+
+                // Reset season-specific information.
                 self.awards = None;
                 self.events = None;
                 self.skills_ranking = None;
