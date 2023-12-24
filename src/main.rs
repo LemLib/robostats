@@ -15,18 +15,20 @@ use serenity::{
 };
 
 use commands::{
-    wiki,
     PingCommand,
     PredictCommand,
     TeamCommand,
     WikiCommand,
+};
+use api::{
+    vrc_data_analysis::VRCDataAnalysis,
+    skills_cache::SkillsCache,
 };
 use robotevents::{
     RobotEvents,
     schema::{PaginatedResponse, IdInfo, Season},
     filters::SeasonsFilter,
 };
-use crate::api::vrc_data_analysis::VRCDataAnalysis;
 
 mod api;
 mod commands;
@@ -37,6 +39,7 @@ pub struct BotRequestError;
 struct Bot {
     robotevents: RobotEvents,
     vrc_data_analysis: VRCDataAnalysis,
+    skills_cache: SkillsCache,
     season_list: Result<PaginatedResponse<Season>, BotRequestError>,
     program_list: Result<PaginatedResponse<IdInfo>, BotRequestError>
 }
@@ -80,7 +83,7 @@ impl EventHandler for Bot {
                         predict_command.response(&ctx, &command, &self.vrc_data_analysis).await
                     }
                     "team" => {
-                        team_command.response(&ctx, &command, &self.robotevents).await
+                        team_command.response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis, &self.skills_cache).await
                     },
                     "wiki" => {
                         wiki_command.response(&ctx, &command)
@@ -106,7 +109,7 @@ impl EventHandler for Bot {
                             "team" => {
                                 component_interaction.create_response(
                                     &ctx,
-                                    team_command.component_interaction_response(&ctx, &command, &component_interaction, &self.robotevents).await
+                                    team_command.component_interaction_response(&ctx, &command, &component_interaction, &self.robotevents, &self.vrc_data_analysis, &self.skills_cache).await
                                 ).await.unwrap_or(());
                             },
                             _ => {}
@@ -143,6 +146,7 @@ async fn serenity(
             season_list: robotevents.seasons(SeasonsFilter::default()).await.map_err(|_| BotRequestError),
             robotevents,
             vrc_data_analysis,
+            skills_cache: SkillsCache::default(),
         })
         .await
         .expect("Error creating client");

@@ -71,26 +71,26 @@ impl PredictCommand {
             return CreateInteractionResponseMessage::new().content("Invalid `<b2>` team number.");
         };
 
-        if let Ok(results) = vrc_data_analysis.predict_match((r1, r2), (b1, b2)).await {
-            CreateInteractionResponseMessage::new()
-                .add_embed(
-                    CreateEmbed::new()
-                        .author(CreateEmbedAuthor::new("Match Prediction Results"))
-                        .title(format!("{} {} (🔴) vs {} {} (🔵)", results.red1, results.red2, results.blue1, results.blue2))
-                            .url("https://www.vrc-data-analysis.com/")
-                        .description(format!("{}\n\n{}", results.prediction_msg, Self::progress_bar(17, results.red_win_probability)))
-                        .footer(
-                            CreateEmbedFooter::new("Match predictions provided by vrc-data-analysis.com")
-                                .icon_url("https://cdn.discordapp.com/attachments/1181718273017004043/1185320302272585758/favicon-3.png")
-                        )
-                        .color(if results.red_win_probability > 50.0 {
-                            Color::from_rgb(210, 38, 48)
-                        } else {
-                            Color::from_rgb(0, 119, 200)
-                        })
+        let embed = match vrc_data_analysis.predict_match((r1, r2), (b1, b2)).await {
+            Ok(results) => CreateEmbed::new()
+                .author(CreateEmbedAuthor::new("Match Prediction Results"))
+                .title(format!("{} {} (🔴) vs {} {} (🔵)", results.red1, results.red2, results.blue1, results.blue2))
+                    .url("https://www.vrc-data-analysis.com/")
+                .description(format!("{}\n\n{}", results.prediction_msg, Self::progress_bar(17, results.red_win_probability)))
+                .footer(
+                    CreateEmbedFooter::new("Match predictions provided by vrc-data-analysis.com")
+                        .icon_url("https://cdn.discordapp.com/attachments/1181718273017004043/1185320302272585758/favicon-3.png")
                 )
-        } else {
-            CreateInteractionResponseMessage::new().content("Failed to get match prediction from vrc-data-analysis.")
-        }
+                .color(if results.red_win_probability > 50.0 {
+                    Color::from_rgb(210, 38, 48)
+                } else {
+                    Color::from_rgb(0, 119, 200)
+                }),
+            Err(err) => CreateEmbed::new()
+                    .title("Failed to fetch match prediction data from vrc-data-analysis.")
+                    .description(format!("```rs\n{err:?}```")),
+        };
+
+        CreateInteractionResponseMessage::new().add_embed(embed)
     }
 }

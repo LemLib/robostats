@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use robotevents::filters::TeamEventsFilter;
-use robotevents::schema::Event;
+use robotevents::schema::{Event, skill};
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType, ComponentInteraction,
     ComponentInteractionDataKind, ReactionType,
@@ -21,6 +21,7 @@ use robotevents::{
     filters::{TeamsFilter, SeasonsFilter, TeamAwardsFilter},
     schema::{PaginatedResponse, Team, Season, Award, IdInfo}
 };
+use crate::api::skills_cache::{SkillsCache, SkillsRanking};
 use crate::api::vrc_data_analysis::{
     VRCDataAnalysis,
     schema::TeamInfo
@@ -111,6 +112,8 @@ pub struct TeamCommand {
 
     /// List of events the team has attended.
     events: Option<PaginatedResponse<Event>>,
+
+    skills_ranking: Option<Option<SkillsRanking>>,
 }
 
 impl TeamCommand {
@@ -214,12 +217,14 @@ impl TeamCommand {
     /// Generates an embed based on a page variant and provided data.
     /// 
     /// Returned as an instance of [`serenity::builder::CreateEmbed`].
-    pub async fn embed(&mut self, page: EmbedPage, robotevents: &RobotEvents) -> CreateEmbed {
-        let team = if let Ok(team) = self.find_robotevents_team(&robotevents).await {
-            team
-        } else {
-            return CreateEmbed::new()
-                .title("Failed to fetch RobotEvents team data.");
+    pub async fn embed(&mut self, page: EmbedPage, robotevents: &RobotEvents, vrc_data_analysis: &VRCDataAnalysis, skills_cache: &SkillsCache) -> CreateEmbed {
+        let team = match self.find_robotevents_team(&robotevents).await {
+            Ok(team) => team,
+            Err(err) => {
+                return CreateEmbed::new()
+                    .title("Failed to fetch RobotEvents team data.")
+                    .description(format!("```rs\n{err:?}```"));
+            },
         };
 
         let mut embed = CreateEmbed::new()
@@ -248,7 +253,7 @@ impl TeamCommand {
                         "Location",
                         format!(
                             "{}, {}, {}",
-                            team.location.city, team.location.region, team.location.country
+                            team.location.city, team.location.region.unwrap_or("Unknown".to_string()), team.location.country
                         ),
                         false,
                     )
@@ -268,17 +273,122 @@ impl TeamCommand {
                         false,
                     );
             },
+            EmbedPage::Stats => {
+                let skills_ranking = if let Some(skills_ranking) = &self.skills_ranking {
+                    Ok(skills_ranking.clone())
+                } else {
+                    if let Some(team) = &self.team {
+                        skills_cache.get_team_ranking(team, self.current_season.unwrap(), robotevents).await
+                    } else {
+                        return CreateEmbed::new()
+                            .title("Invalid team data.");
+                    }
+                };
+
+                let data_analysis = if let Some(data_analysis) = &self.data_analysis {
+                    Some(Ok(data_analysis.clone()))
+                } else {
+                    if let Some(team) = &self.team {
+                        if team.program.code == Some("VRC".to_string()) {
+                            Some(vrc_data_analysis.team_info(&team.number).await)
+                        } else {
+                            None
+                        }
+                    } else {
+                        return CreateEmbed::new()
+                            .title("Invalid team data.");
+                    }
+                };
+
+                embed = embed
+                    .title(format!(
+                        "{} ({}, {}) Statistics",
+                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                    ));
+
+                match skills_ranking {
+                    Ok(ranking) => {
+                        if let Some(ranking) = ranking {
+                            embed = embed.field(
+                                "Skills",
+                                format!(
+                                    "World Ranking: **#{}**\nDriver: **{}**\nProgramming: **{}**\nCombined: **{}**",
+                                    ranking.rank,
+                                    ranking.scores.max_driver,
+                                    ranking.scores.max_programming,
+                                    ranking.scores.score
+                                ),
+                                false
+                            );
+                        }
+                    },
+                    Err(err) => {
+                        embed = embed.field("Failed to get skills ranking data from RobotEvents.", format!("```rs\n{err:?}```"), false);
+                    }
+                }
+
+                if let Some(analysis_result) = data_analysis {
+                    match analysis_result {
+                        Ok(analysis) => {
+                            embed = embed.field(
+                                "TrueSkill",
+                                    format!(
+                                        "TrueSkill: **{}**\nWorld Ranking **#{}**",
+                                        analysis.trueskill,
+                                        analysis.trueskill_ranking
+                                    ),
+                                    false
+                                )
+                                .field(
+                                    "Match Statistics",
+                                    format!(
+                                        "OPR: **{}**\nDPR: **{}**\nCCWM: **{}**",
+                                        analysis.opr,
+                                        analysis.dpr,
+                                        analysis.ccwm
+                                    ),
+                                    false
+                                )
+                                .field(
+                                    "Match Performance",
+                                    format!(
+                                        "Wins: **{}**\nLosses: **{}**\nTies: **{}**\nAverage WPs: **{}**\nAWP Percentage: **{:.2}%**",
+                                        analysis.total_wins,
+                                        analysis.total_losses,
+                                        analysis.total_ties,
+                                        analysis.wp_per_match,
+                                        (analysis.awp_per_match * 100.0)
+                                    ),
+                                    false
+                                )
+                                .footer(
+                                    CreateEmbedFooter::new("TrueSkill & Match Data provided by vrc-data-analysis.com")
+                                        .icon_url("https://cdn.discordapp.com/attachments/1181718273017004043/1185320302272585758/favicon-3.png")
+                                );
+                        },
+                        Err(err) => {
+                            embed = embed.field("Failed to get team statistics from vrc-data-analysis.", format!("```rs\n{err:?}```"), false);
+                        }
+                    }
+                } else {
+                    embed = embed.description("*Note: TrueSkill and match analysis data is only available for VRC teams at the moment.*");
+                }
+            },
             EmbedPage::Awards => {
                 let awards = if let Some(awards) = &self.awards {
                     awards.clone()
                 } else {
                     if let Some(team) = &self.team {
-                        if let Ok(awards) = team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
-                            self.awards = Some(awards.clone());
-                            awards
-                        } else {
-                            return CreateEmbed::new()
-                                .title("Failed to fetch RobotEvents awards data.");
+                        match team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
+                            Ok(awards) => {
+                                self.awards = Some(awards.clone());
+                                awards
+                            },
+                            Err(err) => {
+                                return CreateEmbed::new()
+                                    .title("Failed to fetch RobotEvents awards data.")
+                                    .description(format!("```rs\n{err:?}```"));
+                            },
                         }
                     } else {
                         return CreateEmbed::new()
@@ -328,13 +438,18 @@ impl TeamCommand {
                     events.clone()
                 } else {
                     if let Some(team) = &self.team {
-                        if let Ok(events) = team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
-                            self.events = Some(events.clone());
-                            events
-                        } else {
-                            return CreateEmbed::new()
-                                .title("Failed to fetch RobotEvents events data.");
+                        match team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
+                            Ok(events) => {
+                                self.events = Some(events.clone());
+                                events
+                            },
+                            Err(err) => {
+                                return CreateEmbed::new()
+                                    .title("Failed to fetch RobotEvents events data.")
+                                    .description(format!("```rs\n{err:?}```"));
+                            },
                         }
+                        
                     } else {
                         return CreateEmbed::new()
                             .title("Invalid team data.");
@@ -373,11 +488,6 @@ impl TeamCommand {
                     );
                 }
             },
-            _ => {
-                embed = embed
-                    .title("Unknown Page")
-                    .description("How did you even get here? 🤔");
-            }
         }
 
         embed
@@ -399,6 +509,8 @@ impl TeamCommand {
         _ctx: &Context,
         interaction: &CommandInteraction,
         robotevents: &RobotEvents,
+        vrc_data_analysis: &VRCDataAnalysis,
+        skills_cache: &SkillsCache,
     ) -> CreateInteractionResponseMessage {
         let options = if let CommandDataOptionValue::SubCommand(cmd) = &interaction.data.options[0].value {
             cmd
@@ -434,18 +546,24 @@ impl TeamCommand {
         if let Ok(team) = self.find_robotevents_team(&robotevents).await {
 
             // Find a list of seasons that the fetched team was active in using a separate endpoint.
-            self.active_seasons = if let Ok(seasons) = robotevents.seasons(SeasonsFilter::new().team(team.id)).await {
-                self.current_season = Some(seasons.data[0].id);
-                Some(seasons.data)
-            } else {
-                return CreateInteractionResponseMessage::new()
-                    .content("Failed to get season information about team from RobotEvents.");
+            self.active_seasons = match robotevents.seasons(SeasonsFilter::new().team(team.id)).await {
+                Ok(seasons) => {
+                    self.current_season = Some(seasons.data[0].id);
+                    Some(seasons.data)
+                },
+                Err(err) => {
+                    return CreateInteractionResponseMessage::new()
+                        .add_embed(
+                            CreateEmbed::new().title("Failed to get season information about team from RobotEvents.")
+                            .description(format!("```rs\n{err:?}```")),
+                        );
+                }
             };
 
             // This check is technically redundant, since we just set `self.current_page` to Some(T), but
             // it keeps us from have to unnecessarily clone using other methods, so... ¯\_(ツ)_/¯
             CreateInteractionResponseMessage::new()
-                .embed(self.embed(self.current_page, &robotevents).await)
+                .embed(self.embed(self.current_page, robotevents, vrc_data_analysis, skills_cache).await)
                 .components(self.components(self.current_page, self.current_season.unwrap()))
         } else {
             CreateInteractionResponseMessage::new().content("Failed to find a RobotEvents team with this number.")
@@ -498,6 +616,8 @@ impl TeamCommand {
         command_interaction: &CommandInteraction,
         component_interaction: &ComponentInteraction,
         robotevents: &RobotEvents,
+        vrc_data_analysis: &VRCDataAnalysis,
+        skills_cache: &SkillsCache,
     ) -> CreateInteractionResponse {
         if let ComponentInteractionDataKind::StringSelect { values } = &component_interaction.data.kind {
             let changed_value: &str = values.first().unwrap().as_ref();
@@ -509,7 +629,7 @@ impl TeamCommand {
                     .edit_response(
                         &ctx,
                         EditInteractionResponse::new()
-                            .embed(self.embed(self.current_page, &robotevents).await)
+                            .embed(self.embed(self.current_page, robotevents, vrc_data_analysis, skills_cache).await)
                             .components(self.components(
                                 self.current_page,
                                 self.current_season.unwrap(),
@@ -527,14 +647,15 @@ impl TeamCommand {
                 };
 
                 self.current_season = Some(season_id);
-                self.awards = None; // Reset awards cache since the season has changed.
-                self.events = None; // Reset events cache since the season has changed.
+                self.awards = None;
+                self.events = None;
+                self.skills_ranking = None;
 
                 command_interaction
                     .edit_response(
                         &ctx,
                         EditInteractionResponse::new()
-                            .embed(self.embed(self.current_page, &robotevents).await)
+                            .embed(self.embed(self.current_page, robotevents, vrc_data_analysis, skills_cache).await)
                             .components(self.components(
                                 self.current_page,
                                 season_id,
