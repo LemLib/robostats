@@ -52,6 +52,7 @@ impl VRCDataAnalysis {
         Ok(response.json().await?)
     }
 
+    #[allow(unused)]
     pub async fn ccwm(
         &self,
         red_alliance: (&str, &str),
