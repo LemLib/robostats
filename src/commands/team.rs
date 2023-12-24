@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use robotevents::filters::TeamEventsFilter;
-use robotevents::schema::{Event, skill};
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType, ComponentInteraction,
     ComponentInteractionDataKind, ReactionType,
@@ -13,15 +11,14 @@ use serenity::builder::{
     CreateSelectMenuOption, EditInteractionResponse, CreateEmbedFooter,
 };
 use serenity::client::Context;
-use serenity::model::application::CommandInteraction;
-use serenity::model::Color;
+use serenity::model::{application::CommandInteraction, Color};
 
 use robotevents::{
     RobotEvents,
-    filters::{TeamsFilter, SeasonsFilter, TeamAwardsFilter},
-    schema::{PaginatedResponse, Team, Season, Award, IdInfo}
+    filters::{TeamsFilter, SeasonsFilter, TeamAwardsFilter, TeamEventsFilter},
+    schema::{PaginatedResponse, Team, Event, Season, Award, IdInfo}
 };
-use crate::api::skills_cache::{SkillsCache, SkillsRanking};
+use crate::api::skills::{SkillsCache, SkillsRanking};
 use crate::api::vrc_data_analysis::{
     VRCDataAnalysis,
     schema::TeamInfo

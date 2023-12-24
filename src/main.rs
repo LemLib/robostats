@@ -22,7 +22,7 @@ use commands::{
 };
 use api::{
     vrc_data_analysis::VRCDataAnalysis,
-    skills_cache::SkillsCache,
+    skills::SkillsCache,
 };
 use robotevents::{
     RobotEvents,
