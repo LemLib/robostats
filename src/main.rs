@@ -27,7 +27,7 @@ use api::{
 use robotevents::{
     RobotEvents,
     schema::{PaginatedResponse, IdInfo, Season},
-    filters::SeasonsFilter,
+    query::{SeasonsQuery, PaginatedQuery},
 };
 
 mod api;
@@ -50,10 +50,10 @@ impl EventHandler for Bot {
         println!("{} is connected!", ready.user.name);
 
         // Log warnings in the event that initial list fetching failed on startup.
-        if let Err(_) = self.program_list {
+        if self.program_list.is_err() {
             println!("Failed to fetch program list from RobotEvents. Command functionality may be limited as a result.");
         }
-        if let Err(_) = self.season_list {
+        if self.season_list.is_err() {
             println!("Failed to fetch season list from RobotEvents. Command functionality may be limited as a result.");
         }
 
@@ -143,7 +143,7 @@ async fn serenity(
             // Fetch a list of all seasons and programs from RobotEvents
             // We store these as Result<T, E> internally so HTTP fails don't prevent the bot from starting.
             program_list: robotevents.programs().await.map_err(|_| BotRequestError),
-            season_list: robotevents.seasons(SeasonsFilter::default()).await.map_err(|_| BotRequestError),
+            season_list: robotevents.seasons(SeasonsQuery::default().per_page(250)).await.map_err(|_| BotRequestError),
             robotevents,
             vrc_data_analysis,
             skills_cache: SkillsCache::default(),

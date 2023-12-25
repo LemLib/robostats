@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use robotevents::query::PaginatedQuery;
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType, ComponentInteraction,
     ComponentInteractionDataKind, ReactionType,
@@ -15,7 +16,7 @@ use serenity::model::{application::CommandInteraction, Color};
 
 use robotevents::{
     RobotEvents,
-    filters::{TeamsFilter, SeasonsFilter, TeamAwardsFilter, TeamEventsFilter},
+    query::{TeamsQuery, SeasonsQuery, TeamAwardsQuery, TeamEventsQuery},
     schema::{PaginatedResponse, Team, Event, Season, Award, IdInfo}
 };
 use crate::api::skills::{SkillsCache, SkillsRanking};
@@ -23,6 +24,8 @@ use crate::api::vrc_data_analysis::{
     VRCDataAnalysis,
     schema::TeamInfo
 };
+
+const MAX_PER_PAGE: i32 = 250;
 
 /// Represents a possible embed sent by the `/team`` command.
 /// 
@@ -376,7 +379,7 @@ impl TeamCommand {
                     awards.clone()
                 } else {
                     if let Some(team) = &self.team {
-                        match team.awards(robotevents, TeamAwardsFilter::new().season(self.current_season.unwrap())).await {
+                        match team.awards(robotevents, TeamAwardsQuery::new().season(self.current_season.unwrap()).per_page(MAX_PER_PAGE)).await {
                             Ok(awards) => {
                                 self.awards = Some(awards.clone());
                                 awards
@@ -435,7 +438,7 @@ impl TeamCommand {
                     events.clone()
                 } else {
                     if let Some(team) = &self.team {
-                        match team.events(robotevents, TeamEventsFilter::new().season(self.current_season.unwrap())).await {
+                        match team.events(robotevents, TeamEventsQuery::new().season(self.current_season.unwrap()).per_page(MAX_PER_PAGE)).await {
                             Ok(events) => {
                                 self.events = Some(events.clone());
                                 events
@@ -543,7 +546,7 @@ impl TeamCommand {
         if let Ok(team) = self.find_robotevents_team(&robotevents).await {
 
             // Find a list of seasons that the fetched team was active in using a separate endpoint.
-            self.active_seasons = match robotevents.seasons(SeasonsFilter::new().team(team.id)).await {
+            self.active_seasons = match robotevents.seasons(SeasonsQuery::new().team(team.id).per_page(MAX_PER_PAGE)).await {
                 Ok(seasons) => {
                     self.current_season = Some(seasons.data[0].id);
                     Some(seasons.data)
@@ -591,12 +594,12 @@ impl TeamCommand {
         }
 
         // Fetch team using RobotEvents HTTP client
-        let mut filter = TeamsFilter::new().number(team_number.to_string());
+        let mut query = TeamsQuery::new().number(team_number.to_string());
         if let Some(program_id_filter) = self.program_id_filter {
-            filter = filter.program(program_id_filter);
+            query = query.program(program_id_filter);
         }
 
-        if let Ok(teams) = robotevents.teams(filter).await {
+        if let Ok(teams) = robotevents.teams(query).await {
             if let Some(team) = teams.data.iter().next() {
                 self.team = Some(team.clone()); // Cache value for later use. 
                 return Ok(team.clone());
