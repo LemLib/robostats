@@ -604,7 +604,8 @@ impl TeamCommand {
         Err(TeamCommandRequestError)
     }
     
-    /// Responds to an interaction with the `/team` command's message components (e.g. select menus).
+    /// Event handler that outputs a response message based on a user interaction with a message component
+    /// (such as a select menu).
     pub async fn component_interaction_response(
         &mut self,
         ctx: &Context,
