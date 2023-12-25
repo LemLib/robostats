@@ -49,26 +49,18 @@ impl PredictCommand {
         interaction: &CommandInteraction,
         vrc_data_analysis: &VRCDataAnalysis
     ) -> CreateInteractionResponseMessage {
-        let r1 = if let CommandDataOptionValue::String(number) = &interaction.data.options[0].value {
-            number
-        } else {
-            return CreateInteractionResponseMessage::new().content("Invalid `<r1>` team number.");
-        };
-        let r2 = if let CommandDataOptionValue::String(number) = &interaction.data.options[1].value {
-            number
-        } else {
-            return CreateInteractionResponseMessage::new().content("Invalid `<r2>` team number.");
-        };
+        let mut teams = Vec::new();
+        for (idx, opt) in interaction.data.options.iter().enumerate() {
+            if let CommandDataOptionValue::String(number) = &opt.value {
+                teams.push(number);
+            } else {
+                return CreateInteractionResponseMessage::new()
+                    .add_embed(CreateEmbed::new().title(format!("Invalid team number at argument {}", idx + 1)));
+            }
+        }
 
-        let b1 = if let CommandDataOptionValue::String(number) = &interaction.data.options[2].value {
-            number
-        } else {
-            return CreateInteractionResponseMessage::new().content("Invalid `<b1>` team number.");
-        };
-        let b2 = if let CommandDataOptionValue::String(number) = &interaction.data.options[3].value {
-            number
-        } else {
-            return CreateInteractionResponseMessage::new().content("Invalid `<b2>` team number.");
+        let [r1, r2, b1, b2] = teams.as_slice() else {
+            return CreateInteractionResponseMessage::new().add_embed(CreateEmbed::new().title("Missing team argument."));
         };
 
         let embed = match vrc_data_analysis.predict_match((r1, r2), (b1, b2)).await {
