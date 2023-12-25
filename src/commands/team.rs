@@ -320,6 +320,8 @@ impl TeamCommand {
                                 ),
                                 false
                             );
+                        } else {
+                            embed = embed.field("Skills", "No skills runs found for this team.", false);
                         }
                     },
                     Err(err) => {
