@@ -1,19 +1,20 @@
 use serenity::all::CreateEmbed;
-use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
+use serenity::builder::CreateInteractionResponseMessage;
 use serenity::builder::CreateCommand;
-use serenity::client::Context;
-use serenity::model::application::CommandInteraction;
 
-pub fn response(_ctx: &Context, _interaction: &CommandInteraction) -> CreateInteractionResponse {
-    let message = CreateInteractionResponseMessage::new()
-        .add_embed(
-            CreateEmbed::new()
-                .title("Pong!")
-        );
+#[derive(Default, Clone, Debug, PartialEq)]
+pub struct PingCommand;
 
-    CreateInteractionResponse::Message(message)
-}
+impl PingCommand {
+    pub fn command() -> CreateCommand {
+        CreateCommand::new("ping").description("Ping the bot")
+    }
 
-pub fn register() -> CreateCommand {
-    CreateCommand::new("ping").description("Ping the bot")
+    pub fn response(&self) -> CreateInteractionResponseMessage {
+        CreateInteractionResponseMessage::new()
+            .add_embed(
+                CreateEmbed::new()
+                    .title("Pong!")
+            )
+    }
 }

@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use crate::api::vrc_data_analysis::schema::*;
 
+#[derive(Default, Debug, Clone)]
 pub struct VRCDataAnalysis {
     pub req_client: reqwest::Client,
 }
@@ -27,8 +28,7 @@ impl VRCDataAnalysis {
             .header(USER_AGENT, "RoboStats Discord Bot")
             .timeout(Duration::from_secs(10))
             .send()
-            .await
-            .unwrap())
+            .await?)
     }
 
     pub async fn team_info(&self, team_number: &str) -> Result<TeamInfo, reqwest::Error> {
@@ -52,6 +52,7 @@ impl VRCDataAnalysis {
         Ok(response.json().await?)
     }
 
+    #[allow(unused)]
     pub async fn ccwm(
         &self,
         red_alliance: (&str, &str),

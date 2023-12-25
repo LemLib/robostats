@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct TeamInfo {
     pub ap_per_match: f64,
     pub awp_per_match: f64,
@@ -22,7 +22,7 @@ pub struct TeamInfo {
     pub wp_per_match: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct Prediction {
     pub blue1: String,
     pub blue2: String,
@@ -32,7 +32,7 @@ pub struct Prediction {
     pub red_win_probability: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
 pub struct CCWM {
     pub b1_awp_per_match: f64,
     pub b2_awp_per_match: f64,
