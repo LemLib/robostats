@@ -147,8 +147,8 @@ impl TeamCommand {
             ])
     }
 
-    /// Get a list of message components associated with this command. Includes select menus,
-    /// radio options, buttons, etc...
+    /// Generate the message components associated with this command, including the page and season
+    /// select menus.
     /// 
     /// This isn't hardcoded into [`Self::response`] due to Discord unfortunately wiping the
     /// user's selection choice when a message is edited. As a result, we need to reconstruct
@@ -214,7 +214,9 @@ impl TeamCommand {
         components
     }
 
-    /// Generates an embed based on a page variant and provided data.
+    /// Constructs an embed based on a page variant and provided data. This will be added to response
+    /// messages based on the page that the user has selected along with the components provided by
+    /// [`Self::components`].
     /// 
     /// Returned as an instance of [`serenity::builder::CreateEmbed`].
     pub async fn embed(&mut self, page: EmbedPage, robotevents: &RobotEvents, vrc_data_analysis: &VRCDataAnalysis, skills_cache: &SkillsCache) -> CreateEmbed {
@@ -326,29 +328,20 @@ impl TeamCommand {
                     },
                     Err(err) => {
                         embed = embed.field("Failed to get skills ranking data from RobotEvents.", format!("```rs\n{err:?}```"), false);
-                    }
+                    },
                 }
 
                 if let Some(analysis_result) = data_analysis {
                     match analysis_result {
                         Ok(analysis) => {
                             embed = embed.field(
-                                "TrueSkill",
-                                    format!(
-                                        "TrueSkill: **{}**\nWorld Ranking **#{}**",
-                                        analysis.trueskill,
-                                        analysis.trueskill_ranking
-                                    ),
+                                    "TrueSkill",
+                                    format!("TrueSkill: **{}**\nWorld Ranking **#{}**", analysis.trueskill, analysis.trueskill_ranking),
                                     false
                                 )
                                 .field(
                                     "Match Statistics",
-                                    format!(
-                                        "OPR: **{}**\nDPR: **{}**\nCCWM: **{}**",
-                                        analysis.opr,
-                                        analysis.dpr,
-                                        analysis.ccwm
-                                    ),
+                                    format!("OPR: **{}**\nDPR: **{}**\nCCWM: **{}**", analysis.opr, analysis.dpr, analysis.ccwm),
                                     false
                                 )
                                 .field(
