@@ -594,7 +594,11 @@ impl TeamCommand {
             query = query.program(program_id_filter);
         }
 
-        if let Ok(teams) = robotevents.teams(query).await {
+        if let Ok(mut teams) = robotevents.teams(query).await {
+            // Prioritize teams that are registered over teams that are not registered.
+            // From there, pick the team with the lowest numeric program ID (VRC has the lowest ID being `1`).
+            teams.data.sort_by_key(|team| (!team.registered, team.program.id));
+
             if let Some(team) = teams.data.iter().next() {
                 self.team = Some(team.clone()); // Cache value for later use. 
                 return Ok(team.clone());
