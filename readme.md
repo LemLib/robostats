@@ -27,12 +27,14 @@ This bot is written in [Rust](https://www.rust-lang.org/) using the [serenity fr
 - A [RobotEvents v2 API bearer token](https://www.robotevents.com/api/v2/).
 - A discord application token.
 
-Tokens should be placed in a `Secrets.toml` file in the repository's root directory. Example file:
+Tokens should be placed in `Secrets.toml` and `Secrets.dev.toml` files in the repository's root directory. Example file:
 
 ```toml
 DISCORD_TOKEN = ''
 ROBOTEVENTS_TOKEN = ''
 ```
+
+> `Secrets.dev.toml` will be used for local deployments while `Secrets.toml` will be used for deployments to the actual shuttle service.
 
 ### Testing the bot on a local instance
 This will temporarily deploy the bot using your local machine as a server for testing purposes:
