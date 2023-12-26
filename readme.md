@@ -61,6 +61,6 @@ See the [Code of Conduct](https://github.com/LemLib/robostats/blob/main/.github/
 [server badge]: https://img.shields.io/badge/discord-join-green?serverId=1094397185141002340&label=Discord%20Server&logo=discord&logoColor=e6edf3&labelColor=30363d&color=2f81f7&style=for-the-badge
 [server link]: https://discord.gg/yXPytbW9TC
 [invite badge]: https://img.shields.io/badge/Invite-238636?style=for-the-badge&label=Invite%20Bot&labelColor=30363d&color=238636&logo=discord&logoColor=e6edf3
-[invite link]: https://discord.com/api/oauth2/authorize?client_id=1181453354677850172&permissions=2147797056&scope=bot+applications.commands
+[invite link]: https://discord.com/api/oauth2/authorize?client_id=1181453354677850172&permissions=414464657472&scope=bot+applications.commands
 [build badge]: https://img.shields.io/github/actions/workflow/status/LemLib/robostats/rust.yml?style=for-the-badge&labelColor=30363d&logo=rust&logoColor=e6edf3
 [build link]: https://github.com/LemLib/robostats/actions
