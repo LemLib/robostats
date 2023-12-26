@@ -228,14 +228,15 @@ impl TeamCommand {
                     .description(format!("```rs\n{err:?}```"));
             },
         };
+        let program_code = team.program.code.clone().unwrap_or("UNKNOWN".to_string());
 
         let mut embed = CreateEmbed::new()
             .url(format!(
                 "https://www.robotevents.com/teams/{}/{}",
-                team.program.code.clone().unwrap_or("VRC".to_string()), team.number
+                program_code, team.number
             ))
             // TODO: More colors for different RobotEvents programs.
-            .color(match team.program.code.clone().unwrap_or("VRC".to_string()).as_ref() {
+            .color(match program_code.as_str() {
                 "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
                 "VIQRC" => Color::from_rgb(0, 119, 200),
                 "VAIRC" => Color::from_rgb(91, 91, 91),
@@ -247,7 +248,7 @@ impl TeamCommand {
                 embed = embed
                     .title(format!(
                         "{} ({}, {})",
-                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                        team.number, program_code, team.grade
                     ))
                     .description(&team.team_name)
                     .field("Organization", &team.organization, false)
@@ -280,7 +281,15 @@ impl TeamCommand {
                     Ok(skills_ranking.clone())
                 } else {
                     if let Some(team) = &self.team {
-                        skills_cache.get_team_ranking(team, self.current_season.unwrap(), robotevents).await
+                        // This mess is necessary because reqwest::Error doesn't derive #[derive(Clone)]
+                        // https://github.com/seanmonstar/reqwest/issues/1053
+                        match skills_cache.get_team_ranking(team, self.current_season.unwrap(), robotevents).await {
+                            Ok(ranking) => {
+                                self.skills_ranking = Some(ranking.clone());
+                                Ok(ranking)
+                            },
+                            Err(err) => Err(err)
+                        }
                     } else {
                         return CreateEmbed::new()
                             .title("Invalid team data.");
@@ -291,8 +300,14 @@ impl TeamCommand {
                     Some(Ok(data_analysis.clone()))
                 } else {
                     if let Some(team) = &self.team {
-                        if team.program.code == Some("VRC".to_string()) {
-                            Some(vrc_data_analysis.team_info(&team.number).await)
+                        if program_code == "VRC" {
+                            match vrc_data_analysis.team_info(&team.number).await {
+                                Ok(ranking) => {
+                                    self.data_analysis = Some(ranking.clone());
+                                    Some(Ok(ranking))
+                                },
+                                Err(err) => Some(Err(err))
+                            }
                         } else {
                             None
                         }
@@ -305,7 +320,7 @@ impl TeamCommand {
                 embed = embed
                     .title(format!(
                         "{} ({}, {}) Statistics",
-                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                        team.number, program_code, team.grade
                     ));
 
                 match skills_ranking {
@@ -399,7 +414,7 @@ impl TeamCommand {
                 embed = embed
                     .title(format!(
                         "{} ({}, {}) Awards",
-                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                        team.number, program_code, team.grade
                     ));
 
                     if let Some(to) = awards.meta.to {
@@ -454,7 +469,7 @@ impl TeamCommand {
                 embed = embed
                     .title(format!(
                         "{} ({}, {}) Events",
-                        team.number, team.program.code.clone().unwrap_or("VRC".to_string()), team.grade
+                        team.number, program_code, team.grade
                     ));
 
                 if let Some(to) = events.meta.to {
@@ -476,7 +491,7 @@ impl TeamCommand {
                         event.name,
                         format!(
                             "[View More](https://robotevents.com/robot-competitions/{}/{})",
-                            event.program.code.unwrap_or("VRC".to_string()),
+                            event.program.code.unwrap_or("UNKNOWN".to_string()),
                             event.sku
                         ),
                         true
