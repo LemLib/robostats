@@ -489,11 +489,15 @@ impl TeamCommand {
                 for event in events.data {
                     embed = embed.field(
                         event.name,
-                        format!(
-                            "[View More](https://robotevents.com/robot-competitions/{}/{})",
-                            event.program.code.unwrap_or("UNKNOWN".to_string()),
+                        if let Some(code) = event.program.code {
+                            format!(
+                                "[View More](https://robotevents.com/robot-competitions/{}/{})",
+                                code,
+                                event.sku
+                            )
+                        } else {
                             event.sku
-                        ),
+                        },
                         true
                     );
                 }
