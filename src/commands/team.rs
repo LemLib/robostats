@@ -596,7 +596,7 @@ impl TeamCommand {
 
         if let Ok(mut teams) = robotevents.teams(query).await {
             // Sort by lowest program ID to prioritize VRC teams in the search
-            // NOTE: VRC Internally has an ID of 1, making it the lowest numerical program ID
+            // NOTE: VRC Internally has an ID of 1, making it the lowest numeric program ID
             teams.data.sort_by(|a, b| a.program.id.cmp(&b.program.id));
 
             if let Some(team) = teams.data.iter().next() {
