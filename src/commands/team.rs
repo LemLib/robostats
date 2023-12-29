@@ -259,22 +259,19 @@ impl TeamCommand {
                             team.location.city, team.location.region.unwrap_or("Unknown".to_string()), team.location.country
                         ),
                         false,
-                    )
-                    // TODO: Should we hide this field entirely if no robot name is available?
-                    .field(
-                        "Robot Name",
-                        if let Some(robot_name) = &team.robot_name {
-                            robot_name
-                        } else {
-                            "Unnamed"
-                        },
-                        false,
-                    )
-                    .field(
-                        "Registered",
-                        if team.registered { "Yes" } else { "No" },
-                        false,
                     );
+                
+                if let Some(robot_name) = &team.robot_name {
+                    if !robot_name.is_empty() {
+                        embed = embed.field("Robot Name", robot_name, false);
+                    }
+                }
+
+                embed = embed.field(
+                    "Registered",
+                    if team.registered { "Yes" } else { "No" },
+                    false,
+                );
             },
             EmbedPage::Stats => {
                 let skills_ranking = if let Some(skills_ranking) = &self.skills_ranking {
