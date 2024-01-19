@@ -2,8 +2,9 @@ use api::robotevents::client::RobotEvents;
 use shuttle_secrets::SecretStore;
 
 use serenity::all::Command;
+use serenity::all::Message;
 use serenity::async_trait;
-use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
+use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, CreateEmbed, CreateEmbedFooter};
 use serenity::model::application::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
@@ -46,6 +47,31 @@ impl EventHandler for Bot {
                 if let Err(error) = command.create_response(&ctx.http, response).await {
                     println!("Cannot respond to slash command: {error}");
                 }
+            }
+        }
+    }
+
+    // On message
+    async fn message(&self, ctx: Context, msg: Message) {
+        // Ignore messages from bots
+        if msg.author.bot {
+            return;
+        }
+
+        // Ignore messages that don't start with the prefix
+        if msg.content.starts_with(ctx.cache.current_user().mention().to_string().as_str()) {
+            let message = CreateMessage::new()
+                .add_embed(
+                    CreateEmbed::new()
+                        .title("Hello there! 👋")
+                        .description("RoboStats uses slash commands to operate. Try `/team`!")
+                        .footer(
+                            CreateEmbedFooter::new("Made with ❤️ by the VRC community.")
+                        )
+                );
+            // Send message
+            if let Err(error) = msg.channel_id.send_message(&ctx.http, message).await {
+                println!("Cannot send message: {error}");
             }
         }
     }
