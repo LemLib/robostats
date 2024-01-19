@@ -1,19 +1,47 @@
-use api::robotevents::client::RobotEvents;
+use std::time::Duration;
+
+
 use shuttle_secrets::SecretStore;
+use serenity::{
+    prelude::*,
+    async_trait,
+    all::Command,
+    futures::StreamExt,
+    builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
+    model::{
+        application::Interaction,
+        gateway::Ready,
+    }
+};
 
-use serenity::all::Command;
-use serenity::all::Message;
-use serenity::async_trait;
-use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, CreateEmbed, CreateEmbedFooter};
-use serenity::model::application::Interaction;
-use serenity::model::gateway::Ready;
-use serenity::prelude::*;
+use commands::{
+    PingCommand,
+    PredictCommand,
+    TeamCommand,
+    WikiCommand,
+};
+use api::{
+    vrc_data_analysis::VRCDataAnalysis,
+    skills::SkillsCache,
+};
+use robotevents::{
+    RobotEvents,
+    schema::{PaginatedResponse, IdInfo, Season},
+    query::{SeasonsQuery, PaginatedQuery},
+};
 
-mod commands;
 mod api;
+mod commands;
+
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
+pub struct BotRequestError;
 
 struct Bot {
     robotevents: RobotEvents,
+    vrc_data_analysis: VRCDataAnalysis,
+    skills_cache: SkillsCache,
+    season_list: Result<PaginatedResponse<Season>, BotRequestError>,
+    program_list: Result<PaginatedResponse<IdInfo>, BotRequestError>
 }
 
 #[async_trait]
@@ -21,12 +49,19 @@ impl EventHandler for Bot {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
-        // Register slash commands
-        Command::set_global_commands(&ctx.http, vec![
-            commands::ping::register(),
-            commands::team::register(),
-            commands::wiki::register()
-        ]).await.expect("Failed to register slash commands.");
+        // Log warnings in the event that initial list fetching failed on startup.
+        if self.program_list.is_err() {
+            println!("Failed to fetch program list from RobotEvents. Command functionality may be limited as a result.");
+        }
+        if self.season_list.is_err() {
+            println!("Failed to fetch season list from RobotEvents. Command functionality may be limited as a result.");
+        }
+
+        // Needs to be done in separate calls because of discord request character limit for command registration.
+        Command::create_global_command(&ctx.http, WikiCommand::command()).await.expect("Failed to register wiki command.");
+        Command::create_global_command(&ctx.http, TeamCommand::command(self.program_list.clone().ok())).await.expect("Failed to register team command.");
+        Command::create_global_command(&ctx.http, PingCommand::command()).await.expect("Failed to register ping command.");
+        Command::create_global_command(&ctx.http, PredictCommand::command()).await.expect("Failed to register predict command.");
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -79,15 +114,29 @@ impl EventHandler for Bot {
 
 #[shuttle_runtime::main]
 async fn serenity(
-    #[shuttle_secrets::Secrets] secrets: SecretStore
+    #[shuttle_secrets::Secrets] secrets: SecretStore,
 ) -> shuttle_serenity::ShuttleSerenity {
-    let discord_token = secrets.get("DISCORD_TOKEN").expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
-    let robotevents_token = secrets.get("ROBOTEVENTS_TOKEN").expect("Couldn't find ROBOTEVENTS_TOKEN in SecretStore. Do you have a Secrets.toml?");
+    let discord_token = secrets
+        .get("DISCORD_TOKEN")
+        .expect("Couldn't find DISCORD_TOKEN in SecretStore. Do you have a Secrets.toml?");
+    let robotevents_token = secrets
+        .get("ROBOTEVENTS_TOKEN")
+        .expect("Couldn't find ROBOTEVENTS_TOKEN in SecretStore. Do you have a Secrets.toml?");
+
+    // HTTP clients for RobotEvents and vrc-data-analysis
+    let robotevents = RobotEvents::new(robotevents_token);
+    let vrc_data_analysis = VRCDataAnalysis::new();
 
     // Build client with token and default intents.
     let client = Client::builder(discord_token, GatewayIntents::empty())
         .event_handler(Bot {
-            robotevents: RobotEvents::new(robotevents_token)
+            // Fetch a list of all seasons and programs from RobotEvents
+            // We store these as Result<T, E> internally so HTTP fails don't prevent the bot from starting.
+            program_list: robotevents.programs().await.map_err(|_| BotRequestError),
+            season_list: robotevents.seasons(SeasonsQuery::default().per_page(250)).await.map_err(|_| BotRequestError),
+            robotevents,
+            vrc_data_analysis,
+            skills_cache: SkillsCache::default(),
         })
         .await
         .expect("Error creating client");
