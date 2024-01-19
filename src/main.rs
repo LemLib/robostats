@@ -5,12 +5,12 @@ use shuttle_secrets::SecretStore;
 use serenity::{
     prelude::*,
     async_trait,
-    all::Command,
+    all::{Command, Message, GatewayIntents},
     futures::StreamExt,
-    builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
+    builder::{CreateInteractionResponse, CreateInteractionResponseMessage, CreateEmbedFooter, CreateEmbed, CreateMessage},
     model::{
         application::Interaction,
-        gateway::Ready,
+        gateway::Ready, Color,
     }
 };
 
@@ -65,24 +65,59 @@ impl EventHandler for Bot {
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::Command(command) = interaction {
-            let response: Option<CreateInteractionResponse> = match command.data.name.as_str() {
-                "ping" => Some(commands::ping::response(&ctx, &command)),
-                "team" => Some(commands::team::response(&ctx, &command, &self.robotevents).await),
-                "wiki" => Some(commands::wiki::response(&ctx, &command)),
-                _ => {
-                    let message = CreateInteractionResponseMessage::new().content("not implemented :(");
+        match interaction {
+            Interaction::Command(command) => {
+                // Some commands store persistent data across component interactions, and thus require an
+                // instance to be created for them ahead of time.
+                let mut team_command = TeamCommand::default();
+                let predict_command = PredictCommand::default();
+                let ping_command = PingCommand::default();
+                let wiki_command = WikiCommand::default();
 
-                    Some(CreateInteractionResponse::Message(message))
-                },
-            };
+                // Generate a response messaage for a given command type.
+                let response_message = match command.data.name.as_str() {
+                    "ping" => {
+                        ping_command.response()
+                    },
+                    "predict" => {
+                        predict_command.response(&ctx, &command, &self.vrc_data_analysis).await
+                    }
+                    "team" => {
+                        team_command.response(&ctx, &command, &self.robotevents, &self.vrc_data_analysis, &self.skills_cache).await
+                    },
+                    "wiki" => {
+                        wiki_command.response(&ctx, &command)
+                    },
+                    _ => {
+                        CreateInteractionResponseMessage::new().content("not implemented :(")
+                    }
+                };
+                
+                // Send initial response message to user's command.
+                if let Err(error) = command.create_response(&ctx.http, CreateInteractionResponse::Message(response_message)).await {
+                    println!("Failed to respond to {} command: {error}", command.data.name.as_str());
+                }
+                
+                // Wait for component interactions and handle them according to the respective command.
+                if let Ok(response) = command.get_response(&ctx.http).await {
+                    // Each command gets a 3 minute event listener for interactions with components.
+                    let mut interaction_stream =
+                        response.await_component_interaction(&ctx.shard).timeout(Duration::from_secs(60 * 3)).stream();
 
-            // Attempt to send response
-            if let Some(response) = response {
-                if let Err(error) = command.create_response(&ctx.http, response).await {
-                    println!("Cannot respond to slash command: {error}");
+                    while let Some(component_interaction) = interaction_stream.next().await {
+                        match command.data.name.as_str() {
+                            "team" => {
+                                component_interaction.create_response(
+                                    &ctx,
+                                    team_command.component_interaction_response(&ctx, &command, &component_interaction, &self.robotevents, &self.vrc_data_analysis, &self.skills_cache).await
+                                ).await.unwrap_or(());
+                            },
+                            _ => {}
+                        }
+                    }
                 }
             }
+            _ => {}
         }
     }
 
@@ -93,7 +128,6 @@ impl EventHandler for Bot {
             return;
         }
 
-        // Ignore messages that don't start with the prefix
         if msg.content.starts_with(ctx.cache.current_user().mention().to_string().as_str()) {
             let message = CreateMessage::new()
                 .add_embed(
@@ -103,6 +137,7 @@ impl EventHandler for Bot {
                         .footer(
                             CreateEmbedFooter::new("Made with ❤️ by the VRC community.")
                         )
+                        .color(Color::from_rgb(210, 38, 48))
                 );
             // Send message
             if let Err(error) = msg.channel_id.send_message(&ctx.http, message).await {
@@ -127,8 +162,8 @@ async fn serenity(
     let robotevents = RobotEvents::new(robotevents_token);
     let vrc_data_analysis = VRCDataAnalysis::new();
 
-    // Build client with token and default intents.
-    let client = Client::builder(discord_token, GatewayIntents::empty())
+    // Build client with token and guild messages intent
+    let client = Client::builder(discord_token, GatewayIntents::GUILD_MESSAGES)
         .event_handler(Bot {
             // Fetch a list of all seasons and programs from RobotEvents
             // We store these as Result<T, E> internally so HTTP fails don't prevent the bot from starting.
