@@ -491,8 +491,18 @@ impl TeamCommand {
                         event.name,
                         if let Some(code) = event.program.code {
                             format!(
-                                "[View More](https://robotevents.com/robot-competitions/{}/{})",
-                                code,
+                                "[View More](https://robotevents.com/robot-competitions/{}/{}.html)",
+                                match code.as_str() {
+                                    "VRC" => "vex-robotics-competition",
+                                    "VEXU" => "college-competition",
+                                    "VIQRC" => "vex-iq-competition",
+                                    "VAIRC" => "vex-ai-competition",
+                                    "BellAVR" => "bell-advanced-vertical-robotics-competition",
+                                    "TVRC" => "tsavrc",
+                                    "TVIQTC" => "tsaviqc",
+                                    "FAC" => "vex-factory-automation-competition",
+                                    _ => code.as_str(),
+                                },
                                 event.sku
                             )
                         } else {
