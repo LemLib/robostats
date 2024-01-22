@@ -5,12 +5,12 @@ use shuttle_secrets::SecretStore;
 use serenity::{
     prelude::*,
     async_trait,
-    all::Command,
+    all::{Command, Message, GatewayIntents},
     futures::StreamExt,
-    builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
+    builder::{CreateInteractionResponse, CreateInteractionResponseMessage, CreateEmbedFooter, CreateEmbed, CreateMessage},
     model::{
         application::Interaction,
-        gateway::Ready,
+        gateway::Ready, Color,
     }
 };
 
@@ -120,6 +120,31 @@ impl EventHandler for Bot {
             _ => {}
         }
     }
+
+    // On message
+    async fn message(&self, ctx: Context, msg: Message) {
+        // Ignore messages from bots
+        if msg.author.bot {
+            return;
+        }
+
+        if msg.content.starts_with(ctx.cache.current_user().mention().to_string().as_str()) {
+            let message = CreateMessage::new()
+                .add_embed(
+                    CreateEmbed::new()
+                        .title("Hello there! 👋")
+                        .description("RoboStats uses slash commands to operate. Try `/team`!")
+                        .footer(
+                            CreateEmbedFooter::new("Made with ❤️ by the VRC community.")
+                        )
+                        .color(Color::from_rgb(210, 38, 48))
+                );
+            // Send message
+            if let Err(error) = msg.channel_id.send_message(&ctx.http, message).await {
+                println!("Cannot send message: {error}");
+            }
+        }
+    }
 }
 
 #[shuttle_runtime::main]
@@ -137,8 +162,8 @@ async fn serenity(
     let robotevents = RobotEvents::new(robotevents_token);
     let vrc_data_analysis = VRCDataAnalysis::new();
 
-    // Build client with token and default intents.
-    let client = Client::builder(discord_token, GatewayIntents::empty())
+    // Build client with token and guild messages intent
+    let client = Client::builder(discord_token, GatewayIntents::GUILD_MESSAGES)
         .event_handler(Bot {
             // Fetch a list of all seasons and programs from RobotEvents
             // We store these as Result<T, E> internally so HTTP fails don't prevent the bot from starting.
