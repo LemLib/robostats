@@ -69,7 +69,9 @@ impl SkillsCache {
 		let key = SkillsCacheKey(season_id, team.grade.to_string());
 		
 		let rankings = match cache.get(&key) {
-			Some((rankings, timestamp)) if timestamp.elapsed() < Duration::from_secs(43200) => rankings,
+			Some((rankings, timestamp)) if timestamp.elapsed() < Duration::from_secs(43200) => {
+				rankings
+			},
 			_ => {
 				let fetched_rankings: Vec<SkillsRanking> = robotevents
 					.request_api_v1(format!("/seasons/{season_id}/skills?grade_level={}&post_season=0", team.grade.to_string()))
@@ -77,7 +79,8 @@ impl SkillsCache {
 					.json()
 					.await?;
 
-				&cache.entry(key).or_insert((fetched_rankings, Instant::now())).0
+				cache.insert(key.clone(), (fetched_rankings, Instant::now()));
+				&cache.get(&key).expect("Cache should be full after being immediately updated.").0
 			},
 		};
 
