@@ -77,7 +77,8 @@ impl SkillsCache {
 					.json()
 					.await?;
 
-				&cache.entry(key).or_insert((fetched_rankings, Instant::now())).0
+				cache.insert(key.clone(), (fetched_rankings, Instant::now()));
+				&cache.get(&key).expect("Cache should be full after being immediately updated.").0
 			},
 		};
 
