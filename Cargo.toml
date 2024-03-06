@@ -6,14 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-robotevents = "0.4.0"
+robotevents = "0.5.0"
 serenity = { version = "0.12.0", features = ["collector"] }
 tokio = "1.26.0"
-shuttle-secrets = "0.34.0"
-shuttle-runtime = "0.34.0"
-shuttle-serenity = { version = "0.34.1", default-features = false, features = ["serenity-0-12-rustls_backend"] }
+shuttle-secrets = "0.40.0"
+shuttle-runtime = "0.40.0"
+shuttle-serenity = "0.40.0"
 lazy_static = "1.4.0"
 serde = "1.0.193"
 reqwest = { version = "0.11.22", features = ["json"] }
-hashlink = "0.8.4"
+hashlink = "0.9.0"
 shuttle = "0.6.1"
