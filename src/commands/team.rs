@@ -236,10 +236,10 @@ impl TeamCommand {
                 program_code, team.number
             ))
             // TODO: More colors for different RobotEvents programs.
-            .color(match program_code.as_str() {
-                "VRC" | "VEXU" => Color::from_rgb(210, 38, 48),
-                "VIQRC" => Color::from_rgb(0, 119, 200),
-                "VAIRC" => Color::from_rgb(91, 91, 91),
+            .color(match team.program.id {
+                1 | 4 => Color::from_rgb(210, 38, 48), // VRC/VEXU
+                41 => Color::from_rgb(0, 119, 200), // VIQC
+                57 => Color::from_rgb(91, 91, 91), // VAIC
                 _ => Default::default(),
             });
 
@@ -297,7 +297,7 @@ impl TeamCommand {
                     Some(Ok(data_analysis.clone()))
                 } else {
                     if let Some(team) = &self.team {
-                        if program_code == "VRC" {
+                        if team.program.id == 1 {
                             match vrc_data_analysis.team_info(&team.number).await {
                                 Ok(ranking) => {
                                     self.data_analysis = Some(ranking.clone());
@@ -489,15 +489,14 @@ impl TeamCommand {
                         if let Some(code) = event.program.code {
                             format!(
                                 "[View More](https://robotevents.com/robot-competitions/{}/{}.html)",
-                                match code.as_str() {
-                                    "VRC" => "vex-robotics-competition",
-                                    "VEXU" => "college-competition",
-                                    "VIQRC" => "vex-iq-competition",
-                                    "VAIRC" => "vex-ai-competition",
-                                    "BellAVR" => "bell-advanced-vertical-robotics-competition",
-                                    "TVRC" => "tsavrc",
-                                    "TVIQTC" => "tsaviqc",
-                                    "FAC" => "vex-factory-automation-competition",
+                                match event.program.id {
+                                    1 => "vex-robotics-competition",
+                                    4 => "college-competition",
+                                    41 => "vex-iq-competition",
+                                    57 => "vex-ai-competition",
+                                    46 => "tsavrc",
+                                    47 => "tsaviqc",
+                                    56 => "vex-factory-automation-competition",
                                     _ => code.as_str(),
                                 },
                                 event.sku
@@ -505,7 +504,7 @@ impl TeamCommand {
                         } else {
                             event.sku
                         },
-                        true
+                        true,
                     );
                 }
             },
