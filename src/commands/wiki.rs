@@ -1,5 +1,6 @@
-use hashlink::linked_hash_map::LinkedHashMap;
-use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::sync::LazyLock;
+
 use serenity::all::{
     CommandDataOptionValue, CommandOptionType
 };
@@ -13,24 +14,22 @@ use serenity::model::application::CommandInteraction;
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct WikiCommand;
 
-lazy_static! {
-    static ref PRIVILEGES : LinkedHashMap<&'static str, (&'static str, &'static str)> = {
-        let mut map = LinkedHashMap::new();
+static PRIVILEGES: LazyLock<HashMap<&'static str, (&'static str, &'static str)>> = LazyLock::new(|| {
+    let mut map = HashMap::new();
 
-        map.insert("main", ("https://wiki.purduesigbots.com/", "Sigbots: Main Page"));
-        map.insert("building", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts", "Sigbots: Useful Building Techniques"));
-        map.insert("structure", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/structure", "Sigbots: Structural Parts"));
-        map.insert("motion", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/motion", "Sigbots: Motion parts"));
-        map.insert("joints", ("https://wiki.purduesigbots.com/hardware/vex-joints", "Sigbots: Joints"));
-        map.insert("drives", ("https://wiki.purduesigbots.com/hardware/vex-drivetrains", "Sigbots: Drivetrains"));
-        map.insert("lifts", ("https://wiki.purduesigbots.com/hardware/lifts", "Sigbots: Lift Mechanisms"));
-        map.insert("intakes", ("https://wiki.purduesigbots.com/hardware/intakes", "Sigbots: Intake Mechanisms"));
-        map.insert("launchers", ("https://wiki.purduesigbots.com/hardware/shooting-mechanisms", "Sigbots: Launching Mechanisms"));
-        map.insert("pneumatics", ("https://wiki.purduesigbots.com/hardware/pneumatics", "Sigbots: Pneumatics"));
+    map.insert("main", ("https://wiki.purduesigbots.com/", "Sigbots: Main Page"));
+    map.insert("building", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts", "Sigbots: Useful Building Techniques"));
+    map.insert("structure", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/structure", "Sigbots: Structural Parts"));
+    map.insert("motion", ("https://wiki.purduesigbots.com/hardware/misc.-vex-parts-1/motion", "Sigbots: Motion parts"));
+    map.insert("joints", ("https://wiki.purduesigbots.com/hardware/vex-joints", "Sigbots: Joints"));
+    map.insert("drives", ("https://wiki.purduesigbots.com/hardware/vex-drivetrains", "Sigbots: Drivetrains"));
+    map.insert("lifts", ("https://wiki.purduesigbots.com/hardware/lifts", "Sigbots: Lift Mechanisms"));
+    map.insert("intakes", ("https://wiki.purduesigbots.com/hardware/intakes", "Sigbots: Intake Mechanisms"));
+    map.insert("launchers", ("https://wiki.purduesigbots.com/hardware/shooting-mechanisms", "Sigbots: Launching Mechanisms"));
+    map.insert("pneumatics", ("https://wiki.purduesigbots.com/hardware/pneumatics", "Sigbots: Pneumatics"));
 
-        map
-    };
-}
+    map
+});
 
 impl WikiCommand {
     pub fn command() -> CreateCommand {
