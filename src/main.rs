@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-
-use shuttle_secrets::SecretStore;
 use serenity::{
     prelude::*,
     async_trait,
@@ -29,6 +27,7 @@ use robotevents::{
     schema::{PaginatedResponse, IdInfo, Season},
     query::{SeasonsQuery, PaginatedQuery},
 };
+use shuttle_runtime::SecretStore;
 
 mod api;
 mod commands;
@@ -149,7 +148,7 @@ impl EventHandler for Bot {
 
 #[shuttle_runtime::main]
 async fn serenity(
-    #[shuttle_secrets::Secrets] secrets: SecretStore,
+    #[shuttle_runtime::Secrets] secrets: SecretStore,
 ) -> shuttle_serenity::ShuttleSerenity {
     let discord_token = secrets
         .get("DISCORD_TOKEN")
